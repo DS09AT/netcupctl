@@ -31,11 +31,11 @@ class ConfigManager:
             if appdata:
                 return Path(appdata) / "netcupctl"
             return Path.home() / "AppData" / "Roaming" / "netcupctl"
-        else:
-            xdg_config_home = os.getenv("XDG_CONFIG_HOME")
-            if xdg_config_home:
-                return Path(xdg_config_home) / "netcupctl"
-            return Path.home() / ".config" / "netcupctl"
+
+        xdg_config_home = os.getenv("XDG_CONFIG_HOME")
+        if xdg_config_home:
+            return Path(xdg_config_home) / "netcupctl"
+        return Path.home() / ".config" / "netcupctl"
 
     def ensure_config_dir(self) -> None:
         """Create configuration directory if it doesn't exist.
