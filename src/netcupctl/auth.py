@@ -43,6 +43,20 @@ class AuthManager:
         Raises:
             AuthError: If login fails
         """
+        device_code, verification_uri, interval, expires_in = self._request_device_code()
+        self._open_browser(verification_uri)
+        tokens = self._poll_for_token(device_code, interval, expires_in)
+        return tokens
+
+    def _request_device_code(self):
+        """Request device code from OAuth server.
+
+        Returns:
+            Tuple of (device_code, verification_uri, interval, expires_in)
+
+        Raises:
+            AuthError: If request fails
+        """
         try:
             response = requests.post(
                 self.DEVICE_AUTH_URL,
@@ -55,12 +69,20 @@ class AuthManager:
         except requests.RequestException as e:
             raise AuthError(f"Failed to request device code: {type(e).__name__}") from e
 
-        device_code = device_data["device_code"]
-        verification_uri = device_data["verification_uri_complete"]
-        interval = device_data.get("interval", 5)
-        expires_in = device_data["expires_in"]
+        return (
+            device_data["device_code"],
+            device_data["verification_uri_complete"],
+            device_data.get("interval", 5),
+            device_data["expires_in"],
+        )
 
-        print(f"\nPlease open the following URL in your browser:")
+    def _open_browser(self, verification_uri: str):
+        """Display verification URI and open browser.
+
+        Args:
+            verification_uri: URL for user to complete authentication
+        """
+        print("\nPlease open the following URL in your browser:")
         print(f"\n  {verification_uri}\n")
 
         try:
@@ -69,8 +91,23 @@ class AuthManager:
         except OSError:
             print("Could not open browser automatically. Please open the URL manually.")
 
+    def _poll_for_token(self, device_code: str, interval: int, expires_in: int) -> Dict[str, str]:
+        """Poll OAuth server for access token.
+
+        Args:
+            device_code: Device code from initial request
+            interval: Polling interval in seconds
+            expires_in: Timeout in seconds
+
+        Returns:
+            Dictionary with access_token, refresh_token, user_id, expires_at
+
+        Raises:
+            AuthError: If polling fails or times out
+        """
         print(f"\nWaiting for authentication (timeout: {expires_in} seconds)...\n")
         max_attempts = expires_in // interval
+
         for attempt in range(max_attempts):
             time.sleep(interval)
 
@@ -87,49 +124,77 @@ class AuthManager:
                 )
 
                 if response.status_code == 200:
-                    token_data = response.json()
-                    access_token = token_data["access_token"]
-                    refresh_token = token_data["refresh_token"]
-                    expires_in = token_data["expires_in"]
+                    return self._process_token_response(response.json())
 
-                    user_id = self._get_user_id(access_token)
-                    expires_at = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
+                if response.status_code == 400:
+                    interval = self._handle_polling_error(response.json(), attempt, max_attempts, interval)
+                    continue
 
-                    tokens = {
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                        "expires_at": expires_at,
-                        "user_id": user_id,
-                    }
-                    self.config.save_tokens(tokens)
-                    self._token_data = tokens
-
-                    return tokens
-
-                elif response.status_code == 400:
-                    error_data = response.json()
-                    error = error_data.get("error", "unknown")
-
-                    if error == "authorization_pending":
-                        print(f"  Polling... (attempt {attempt + 1}/{max_attempts})", end="\r", flush=True)
-                        continue
-                    elif error == "slow_down":
-                        # OAuth server requests increased polling interval
-                        interval += 5
-                        continue
-                    elif error == "access_denied":
-                        raise AuthError("Authorization declined by user")
-                    elif error == "expired_token":
-                        raise AuthError("Device code expired. Please try again.")
-                    else:
-                        raise AuthError(f"Authentication error: {error}")
-                else:
-                    raise AuthError(f"Unexpected response: {response.status_code}")
+                raise AuthError(f"Unexpected response: {response.status_code}")
 
             except requests.RequestException as e:
                 raise AuthError(f"Failed to poll for token: {type(e).__name__}") from e
 
         raise AuthError("Authentication timeout. Please try again.")
+
+    def _process_token_response(self, token_data: Dict) -> Dict[str, str]:
+        """Process successful token response.
+
+        Args:
+            token_data: Token response from OAuth server
+
+        Returns:
+            Dictionary with access_token, refresh_token, user_id, expires_at
+        """
+        access_token = token_data["access_token"]
+        refresh_token = token_data["refresh_token"]
+        expires_in = token_data["expires_in"]
+
+        user_id = self._get_user_id(access_token)
+        expires_at = (datetime.now() + timedelta(seconds=expires_in)).isoformat()
+
+        tokens = {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "expires_at": expires_at,
+            "user_id": user_id,
+        }
+        self.config.save_tokens(tokens)
+        self._token_data = tokens
+
+        return tokens
+
+    def _handle_polling_error(self, error_data: Dict, attempt: int, max_attempts: int, interval: int) -> int:
+        """Handle polling errors from OAuth server.
+
+        Args:
+            error_data: Error response from OAuth server
+            attempt: Current attempt number
+            max_attempts: Maximum number of attempts
+            interval: Current polling interval
+
+        Returns:
+            Updated interval (may be increased for slow_down errors)
+
+        Raises:
+            AuthError: If error is not recoverable
+        """
+        error = error_data.get("error", "unknown")
+
+        if error == "authorization_pending":
+            print(f"  Polling... (attempt {attempt + 1}/{max_attempts})", end="\r", flush=True)
+            return interval
+
+        if error == "slow_down":
+            return interval + 5
+
+        if error == "access_denied":
+            raise AuthError("Authorization declined by user")
+
+        if error == "expired_token":
+            raise AuthError("Device code expired. Please try again.")
+
+        raise AuthError(f"Authentication error: {error}")
 
     def _get_user_id(self, access_token: str) -> str:
         """Get user ID from userinfo endpoint.
