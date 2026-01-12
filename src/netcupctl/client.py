@@ -63,22 +63,8 @@ class NetcupClient:
             APIError: If request fails
             AuthError: If authentication fails
         """
-        access_token = self.auth.get_access_token()
-        if not access_token:
-            print("Error: Not authenticated. Please run 'netcupctl auth login' first.", file=sys.stderr)
-            sys.exit(1)
-
+        headers = self._build_headers(method, json is not None)
         url = f"{self.BASE_URL}{path}"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json",
-        }
-
-        if json is not None:
-            if method.upper() == "PATCH":
-                headers["Content-Type"] = "application/merge-patch+json"
-            else:
-                headers["Content-Type"] = "application/json"
 
         try:
             response = self.session.request(
@@ -90,50 +76,7 @@ class NetcupClient:
                 timeout=30,
                 verify=True,
             )
-
-            if response.status_code in (200, 201, 202):
-                if response.content:
-                    try:
-                        return response.json()
-                    except requests.JSONDecodeError:
-                        return {"data": response.text}
-                else:
-                    return {}
-
-            elif response.status_code == 204:
-                return {}
-
-            elif response.status_code == 401:
-                raise APIError("Authentication failed. Please login again.", status_code=401)
-
-            elif response.status_code == 403:
-                raise APIError("Access forbidden. You don't have permission for this operation.", status_code=403)
-
-            elif response.status_code == 404:
-                raise APIError("Resource not found.", status_code=404)
-
-            elif response.status_code == 422:
-                try:
-                    error_data = response.json()
-                    error_msg = self._format_validation_error(error_data)
-                except (ValueError, KeyError, requests.JSONDecodeError):
-                    error_msg = "Validation error."
-                raise APIError(error_msg, status_code=422)
-
-            elif 400 <= response.status_code < 500:
-                try:
-                    error_data = response.json()
-                    error_msg = error_data.get("message", error_data.get("error", response.text))
-                except (ValueError, KeyError, requests.JSONDecodeError):
-                    error_msg = response.text or f"Client error (HTTP {response.status_code})"
-                raise APIError(error_msg, status_code=response.status_code)
-
-            elif 500 <= response.status_code < 600:
-                msg = f"Server error (HTTP {response.status_code}). Please try again later."
-                raise APIError(msg, status_code=response.status_code)
-
-            else:
-                raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
+            return self._handle_response(response)
 
         except requests.ConnectionError as exc:
             raise APIError(
@@ -145,6 +88,121 @@ class NetcupClient:
 
         except requests.RequestException as exc:
             raise APIError(f"Request failed: {type(exc).__name__}") from exc
+
+    def _build_headers(self, method: str, has_json: bool) -> Dict[str, str]:
+        """Build request headers with authentication.
+
+        Args:
+            method: HTTP method
+            has_json: Whether request has JSON body
+
+        Returns:
+            Headers dictionary
+        """
+        access_token = self.auth.get_access_token()
+        if not access_token:
+            print("Error: Not authenticated. Please run 'netcupctl auth login' first.", file=sys.stderr)
+            sys.exit(1)
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+        }
+
+        if has_json:
+            if method.upper() == "PATCH":
+                headers["Content-Type"] = "application/merge-patch+json"
+            else:
+                headers["Content-Type"] = "application/json"
+
+        return headers
+
+    def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
+        """Handle HTTP response and extract data.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Response data as dictionary
+
+        Raises:
+            APIError: If response indicates an error
+        """
+        if response.status_code in (200, 201, 202):
+            return self._parse_success_response(response)
+
+        if response.status_code == 204:
+            return {}
+
+        if response.status_code == 401:
+            raise APIError("Authentication failed. Please login again.", status_code=401)
+
+        if response.status_code == 403:
+            raise APIError("Access forbidden. You don't have permission for this operation.", status_code=403)
+
+        if response.status_code == 404:
+            raise APIError("Resource not found.", status_code=404)
+
+        if response.status_code == 422:
+            raise self._handle_validation_error(response)
+
+        if 400 <= response.status_code < 500:
+            raise self._handle_client_error(response)
+
+        if 500 <= response.status_code < 600:
+            msg = f"Server error (HTTP {response.status_code}). Please try again later."
+            raise APIError(msg, status_code=response.status_code)
+
+        raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
+
+    def _parse_success_response(self, response: requests.Response) -> Dict[str, Any]:
+        """Parse successful response content.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Parsed response data
+        """
+        if response.content:
+            try:
+                return response.json()
+            except requests.JSONDecodeError:
+                return {"data": response.text}
+        return {}
+
+    def _handle_validation_error(self, response: requests.Response) -> APIError:
+        """Handle 422 validation error response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            APIError with formatted validation message
+        """
+        try:
+            error_data = response.json()
+            error_msg = self._format_validation_error(error_data)
+        except (ValueError, KeyError, requests.JSONDecodeError):
+            error_msg = "Validation error."
+        return APIError(error_msg, status_code=422)
+
+    def _handle_client_error(self, response: requests.Response) -> APIError:
+        """Handle 4xx client error response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            APIError with error message
+        """
+        try:
+            error_data = response.json()
+            error_msg = error_data.get("message", error_data.get("error", response.text))
+        except (ValueError, KeyError, requests.JSONDecodeError):
+            error_msg = response.text or f"Client error (HTTP {response.status_code})"
+        return APIError(error_msg, status_code=response.status_code)
 
     def _format_validation_error(self, error_data: Dict[str, Any]) -> str:
         """Format validation error message.
@@ -247,61 +305,18 @@ class NetcupClient:
         Raises:
             APIError: If request fails
         """
-        access_token = self.auth.get_access_token()
-        if not access_token:
-            print("Error: Not authenticated. Please run 'netcupctl auth login' first.", file=sys.stderr)
-            sys.exit(1)
-
+        headers = self._build_binary_headers(content_type)
         url = f"{self.BASE_URL}{path}"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": content_type,
-        }
 
         try:
             response = self.session.put(
                 url=url,
                 headers=headers,
                 data=data,
-                timeout=300,  # Longer timeout for uploads
+                timeout=300,
                 verify=True,
             )
-
-            if response.status_code in (200, 201, 202):
-                if response.content:
-                    try:
-                        return response.json()
-                    except requests.JSONDecodeError:
-                        etag = response.headers.get("ETag", "")
-                        return {"etag": etag, "data": response.text}
-                else:
-                    return {"etag": response.headers.get("ETag", "")}
-
-            elif response.status_code == 204:
-                return {"etag": response.headers.get("ETag", "")}
-
-            elif response.status_code == 401:
-                raise APIError("Authentication failed. Please login again.", status_code=401)
-
-            elif response.status_code == 403:
-                raise APIError("Access forbidden.", status_code=403)
-
-            elif response.status_code == 404:
-                raise APIError("Resource not found.", status_code=404)
-
-            elif 400 <= response.status_code < 500:
-                try:
-                    error_data = response.json()
-                    error_msg = error_data.get("message", error_data.get("error", response.text))
-                except (ValueError, KeyError, requests.JSONDecodeError):
-                    error_msg = response.text or f"Client error (HTTP {response.status_code})"
-                raise APIError(error_msg, status_code=response.status_code)
-
-            elif 500 <= response.status_code < 600:
-                raise APIError(f"Server error (HTTP {response.status_code})", status_code=response.status_code)
-
-            else:
-                raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
+            return self._handle_binary_response(response)
 
         except requests.ConnectionError as exc:
             raise APIError("Network error: Could not connect to API.") from exc
@@ -311,3 +326,74 @@ class NetcupClient:
 
         except requests.RequestException as exc:
             raise APIError(f"Upload failed: {type(exc).__name__}") from exc
+
+    def _build_binary_headers(self, content_type: str) -> Dict[str, str]:
+        """Build headers for binary upload request.
+
+        Args:
+            content_type: Content type header value
+
+        Returns:
+            Headers dictionary
+        """
+        access_token = self.auth.get_access_token()
+        if not access_token:
+            print("Error: Not authenticated. Please run 'netcupctl auth login' first.", file=sys.stderr)
+            sys.exit(1)
+
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": content_type,
+        }
+
+    def _handle_binary_response(self, response: requests.Response) -> Dict[str, Any]:
+        """Handle binary upload response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Response data with ETag
+
+        Raises:
+            APIError: If response indicates an error
+        """
+        if response.status_code in (200, 201, 202):
+            return self._parse_binary_success(response)
+
+        if response.status_code == 204:
+            return {"etag": response.headers.get("ETag", "")}
+
+        if response.status_code == 401:
+            raise APIError("Authentication failed. Please login again.", status_code=401)
+
+        if response.status_code == 403:
+            raise APIError("Access forbidden.", status_code=403)
+
+        if response.status_code == 404:
+            raise APIError("Resource not found.", status_code=404)
+
+        if 400 <= response.status_code < 500:
+            raise self._handle_client_error(response)
+
+        if 500 <= response.status_code < 600:
+            raise APIError(f"Server error (HTTP {response.status_code})", status_code=response.status_code)
+
+        raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
+
+    def _parse_binary_success(self, response: requests.Response) -> Dict[str, Any]:
+        """Parse successful binary upload response.
+
+        Args:
+            response: HTTP response object
+
+        Returns:
+            Response data with ETag
+        """
+        if response.content:
+            try:
+                return response.json()
+            except requests.JSONDecodeError:
+                etag = response.headers.get("ETag", "")
+                return {"etag": etag, "data": response.text}
+        return {"etag": response.headers.get("ETag", "")}
