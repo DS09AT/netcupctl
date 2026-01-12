@@ -99,8 +99,8 @@ def login(ctx):
     try:
         tokens = ctx.auth.login()
         click.echo("\n[OK] Successfully logged in!")
-        click.echo(f"User ID: {tokens.get('user_id', 'unknown')}")
-        click.echo(f"Token expires: {tokens.get('expires_at', 'unknown')}")
+        click.echo(f"User ID: {tokens.get('user_id', 'unknown')}")  # pylint: disable=inconsistent-quotes
+        click.echo(f"Token expires: {tokens.get('expires_at', 'unknown')}")  # pylint: disable=inconsistent-quotes
     except AuthError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -135,8 +135,8 @@ def status(ctx):
         if ctx.auth.is_authenticated():
             info = ctx.auth.get_token_info()
             if info:
-                click.echo(f"Logged in as: {info['user_id']}")
-                click.echo(f"Token valid until: {info['expires_at']}")
+                click.echo(f"Logged in as: {info['user_id']}")  # pylint: disable=inconsistent-quotes
+                click.echo(f"Token valid until: {info['expires_at']}")  # pylint: disable=inconsistent-quotes
         else:
             click.echo("Not logged in.")
             click.echo("\nRun 'netcupctl auth login' to authenticate.")
@@ -194,7 +194,7 @@ cli.add_command(vlans)
 def main():
     """Main entry point for CLI."""
     try:
-        cli()
+        cli()  # pylint: disable=no-value-for-parameter
     except KeyboardInterrupt:
         click.echo("\n\nInterrupted by user.", err=True)
         sys.exit(130)
