@@ -96,7 +96,6 @@ def upload_image(ctx, file: str, name: str):
     """
     try:
         user_id = get_authenticated_user_id(ctx)
-
         key = name or os.path.basename(file)
         file_size = os.path.getsize(file)
 
@@ -109,46 +108,58 @@ def upload_image(ctx, file: str, name: str):
             click.echo("Error: Failed to initiate upload", err=True)
             sys.exit(1)
 
-        try:
-            chunk_size = 100 * 1024 * 1024
-            parts = []
-            part_number = 1
-
-            with open(file, "rb") as f:
-                with click.progressbar(length=file_size, label="Uploading") as progress:
-                    while True:
-                        chunk = f.read(chunk_size)
-                        if not chunk:
-                            break
-
-                        part_result = ctx.client.put_binary(
-                            f"/api/v1/users/{user_id}/images/{key}/{upload_id}/parts/{part_number}",
-                            data=chunk,
-                        )
-
-                        etag = part_result.get("etag") or part_result.get("ETag")
-                        parts.append({"partNumber": part_number, "etag": etag})
-
-                        progress.update(len(chunk))
-                        part_number += 1
-
-            complete_result = ctx.client.post(
-                f"/api/v1/users/{user_id}/images/{key}/{upload_id}",
-                json={"parts": parts}
-            )
-
-            ctx.formatter.output(complete_result)
-            click.echo("\n[OK] Custom image uploaded successfully.", err=False)
-
-        except (APIError, OSError, IOError) as e:
-            click.echo(f"\nUpload failed: {e}", err=True)
-            click.echo("Aborting upload...", err=True)
-            try:
-                ctx.client.delete(f"/api/v1/users/{user_id}/images/{key}/{upload_id}")
-            except APIError:
-                pass
-            sys.exit(1)
+        _perform_multipart_upload(ctx, file, file_size, user_id, key, upload_id)
 
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
+
+
+def _perform_multipart_upload(ctx, file: str, file_size: int, user_id: str, key: str, upload_id: str):
+    """Perform multipart upload of image file."""
+    try:
+        parts = _upload_file_parts(ctx, file, file_size, user_id, key, upload_id)
+
+        complete_result = ctx.client.post(
+            f"/api/v1/users/{user_id}/images/{key}/{upload_id}",
+            json={"parts": parts}
+        )
+
+        ctx.formatter.output(complete_result)
+        click.echo("\n[OK] Custom image uploaded successfully.", err=False)
+
+    except (APIError, OSError, IOError) as e:
+        click.echo(f"\nUpload failed: {e}", err=True)
+        click.echo("Aborting upload...", err=True)
+        try:
+            ctx.client.delete(f"/api/v1/users/{user_id}/images/{key}/{upload_id}")
+        except APIError:
+            pass
+        sys.exit(1)
+
+
+def _upload_file_parts(ctx, file: str, file_size: int, user_id: str, key: str, upload_id: str):  # pylint: disable=too-many-locals
+    """Upload file in parts and return list of uploaded parts."""
+    chunk_size = 100 * 1024 * 1024
+    parts = []
+    part_number = 1
+
+    with open(file, "rb") as f:
+        with click.progressbar(length=file_size, label="Uploading") as progress:
+            while True:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+
+                part_result = ctx.client.put_binary(
+                    f"/api/v1/users/{user_id}/images/{key}/{upload_id}/parts/{part_number}",
+                    data=chunk,
+                )
+
+                etag = part_result.get("etag") or part_result.get("ETag")
+                parts.append({"partNumber": part_number, "etag": etag})
+
+                progress.update(len(chunk))
+                part_number += 1
+
+    return parts
