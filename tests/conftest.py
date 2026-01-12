@@ -85,3 +85,19 @@ def mock_context(mock_config, mock_auth, mock_client):
 @pytest.fixture
 def api_base_url():
     return "https://www.servercontrolpanel.de/scp-core"
+
+
+@pytest.fixture
+def temp_data_dir(tmp_path):
+    """Temporary data directory for testing."""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    return data_dir
+
+
+@pytest.fixture
+def mock_upload_file(tmp_path):
+    """Temporary file for upload testing."""
+    upload_file = tmp_path / "test-upload.img"
+    upload_file.write_bytes(b"test" * 1024)
+    return upload_file

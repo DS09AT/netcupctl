@@ -1,9 +1,18 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 from datetime import datetime, timedelta
+import requests
 
 from netcupctl.auth import AuthManager, AuthError
-from tests.fixtures.api_responses import TOKEN_RESPONSE, USERINFO_RESPONSE
+from tests.fixtures.api_responses import (
+    TOKEN_RESPONSE,
+    USERINFO_RESPONSE,
+    DEVICE_AUTH_RESPONSE,
+    DEVICE_AUTH_ERROR_AUTHORIZATION_PENDING,
+    DEVICE_AUTH_ERROR_SLOW_DOWN,
+    DEVICE_AUTH_ERROR_ACCESS_DENIED,
+    DEVICE_AUTH_ERROR_EXPIRED_TOKEN,
+)
 
 
 @pytest.mark.unit
@@ -156,3 +165,220 @@ class TestAuthManager:
 
         assert result is None
         assert auth._token_data is None
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_success(self, mock_sleep, mock_browser, mock_config, requests_mock):
+        """Test successful device flow login"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+
+        mock_token_response = Mock()
+        mock_token_response.status_code = 200
+        mock_token_response.json.return_value = TOKEN_RESPONSE
+        requests_mock.post(AuthManager.TOKEN_URL, [
+            {"status_code": 200, "json": TOKEN_RESPONSE}
+        ])
+
+        requests_mock.get(AuthManager.USERINFO_URL, json=USERINFO_RESPONSE)
+
+        auth = AuthManager(config=mock_config)
+        result = auth.login()
+
+        assert result is not None
+        assert result["access_token"] == TOKEN_RESPONSE["access_token"]
+        assert result["refresh_token"] == TOKEN_RESPONSE["refresh_token"]
+        assert result["user_id"] == USERINFO_RESPONSE["id"]
+        assert mock_browser.called
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_authorization_pending_then_success(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow with authorization_pending then success"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+
+        requests_mock.post(AuthManager.TOKEN_URL, [
+            {"status_code": 400, "json": DEVICE_AUTH_ERROR_AUTHORIZATION_PENDING},
+            {"status_code": 200, "json": TOKEN_RESPONSE}
+        ])
+
+        requests_mock.get(AuthManager.USERINFO_URL, json=USERINFO_RESPONSE)
+
+        auth = AuthManager(config=mock_config)
+        result = auth.login()
+
+        assert result is not None
+        assert result["access_token"] == TOKEN_RESPONSE["access_token"]
+        assert mock_sleep.call_count == 2
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_slow_down(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles slow_down response"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+
+        requests_mock.post(AuthManager.TOKEN_URL, [
+            {"status_code": 400, "json": DEVICE_AUTH_ERROR_SLOW_DOWN},
+            {"status_code": 200, "json": TOKEN_RESPONSE}
+        ])
+
+        requests_mock.get(AuthManager.USERINFO_URL, json=USERINFO_RESPONSE)
+
+        auth = AuthManager(config=mock_config)
+        result = auth.login()
+
+        assert result is not None
+        assert mock_sleep.call_count == 2
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_access_denied(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles access denied"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=400, json=DEVICE_AUTH_ERROR_ACCESS_DENIED)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Authorization declined by user"):
+            auth.login()
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_expired_token(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles expired token"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=400, json=DEVICE_AUTH_ERROR_EXPIRED_TOKEN)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Device code expired"):
+            auth.login()
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_unknown_error(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles unknown error"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=400, json={"error": "unknown_error"})
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Authentication error"):
+            auth.login()
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_timeout(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow timeout after max attempts"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        device_response = DEVICE_AUTH_RESPONSE.copy()
+        device_response["expires_in"] = 10
+        device_response["interval"] = 5
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=device_response)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=400, json=DEVICE_AUTH_ERROR_AUTHORIZATION_PENDING)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Authentication timeout"):
+            auth.login()
+
+    @patch("webbrowser.open")
+    def test_login_device_auth_request_fails(
+        self, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles device auth request failure"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, exc=requests.ConnectionError)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Failed to request device code"):
+            auth.login()
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_polling_network_error(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles network error during polling"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+
+        requests_mock.post(AuthManager.TOKEN_URL, exc=requests.ConnectionError)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Failed to poll for token"):
+            auth.login()
+
+    @patch("webbrowser.open", side_effect=OSError("Browser not available"))
+    @patch("time.sleep")
+    def test_login_device_flow_browser_open_fails(
+        self, mock_sleep, mock_browser, mock_config, requests_mock, capsys
+    ):
+        """Test device flow continues when browser open fails"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=200, json=TOKEN_RESPONSE)
+        requests_mock.get(AuthManager.USERINFO_URL, json=USERINFO_RESPONSE)
+
+        auth = AuthManager(config=mock_config)
+        result = auth.login()
+
+        assert result is not None
+        captured = capsys.readouterr()
+        assert "Could not open browser automatically" in captured.out
+
+    @patch("webbrowser.open")
+    @patch("time.sleep")
+    def test_login_device_flow_unexpected_status_code(
+        self, mock_sleep, mock_browser, mock_config, requests_mock
+    ):
+        """Test device flow handles unexpected status codes"""
+        mock_config.config_dir.mkdir(parents=True, exist_ok=True)
+
+        requests_mock.post(AuthManager.DEVICE_AUTH_URL, json=DEVICE_AUTH_RESPONSE)
+        requests_mock.post(AuthManager.TOKEN_URL, status_code=500)
+
+        auth = AuthManager(config=mock_config)
+
+        with pytest.raises(AuthError, match="Unexpected response: 500"):
+            auth.login()
+
+    def test_get_user_id_uses_sub_field_fallback(self, mock_config, requests_mock):
+        """Test _get_user_id uses sub field when id field missing"""
+        userinfo_with_sub_only = {"sub": "user_456", "email": "test@example.com"}
+        requests_mock.get(AuthManager.USERINFO_URL, json=userinfo_with_sub_only)
+
+        auth = AuthManager(config=mock_config)
+        user_id = auth._get_user_id("test_token")
+
+        assert user_id == "user_456"

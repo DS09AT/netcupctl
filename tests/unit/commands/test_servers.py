@@ -72,7 +72,7 @@ class TestServersCommands:
         assert "[OK]" in result.output
         ctx.client.patch.assert_called_once()
         call_args = ctx.client.patch.call_args
-        assert call_args[1]["json"]["state"] == "running"
+        assert call_args[1]["json"]["state"] == "ON"
 
     def test_stop_server_success(self, cli_runner):
         ctx = create_mock_context()
@@ -83,7 +83,7 @@ class TestServersCommands:
         assert result.exit_code == 0
         assert "[OK]" in result.output
         call_args = ctx.client.patch.call_args
-        assert call_args[1]["json"]["state"] == "stopped"
+        assert call_args[1]["json"]["state"] == "OFF"
 
     def test_reboot_server_success(self, cli_runner):
         ctx = create_mock_context()
@@ -94,7 +94,8 @@ class TestServersCommands:
         assert result.exit_code == 0
         assert "[OK]" in result.output
         call_args = ctx.client.patch.call_args
-        assert call_args[1]["json"]["state"] == "reboot"
+        assert call_args[1]["json"]["state"] == "ON"
+        assert call_args[1]["params"]["stateOption"] == "RESET"
 
     def test_server_action_unauthorized(self, cli_runner):
         ctx = create_mock_context()
