@@ -53,11 +53,17 @@ netcupctl servers get <server-id>
 ### 4. Manage Server State
 
 ```bash
+# Check server status
+netcupctl servers status <server-id>
+
 # Start a server
 netcupctl servers start <server-id>
 
-# Stop a server
+# Stop a server (graceful shutdown)
 netcupctl servers stop <server-id>
+
+# Force power off (hard shutdown)
+netcupctl servers poweroff <server-id>
 
 # Reboot a server
 netcupctl servers reboot <server-id>
@@ -71,7 +77,7 @@ Use `netcupctl <command> --help` to see all available options and flags.
 
 **Authentication & Server Management**
 - `netcupctl auth login | logout | status` - OAuth2 authentication
-- `netcupctl servers list | get | start | stop | reboot <server-id>` - Server control
+- `netcupctl servers list | get | status | start | stop | poweroff | reboot <server-id>` - Server control
 - `netcupctl ping` - API health check
 - `netcupctl maintenance` - Maintenance status
 

@@ -38,8 +38,6 @@ class NetcupClient:
         self.session.headers.update(
             {
                 "User-Agent": "netcupctl/0.1.0",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
             }
         )
 
@@ -71,7 +69,16 @@ class NetcupClient:
             sys.exit(1)
 
         url = f"{self.BASE_URL}{path}"
-        headers = {"Authorization": f"Bearer {access_token}"}
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
+        }
+
+        if json is not None:
+            if method.upper() == "PATCH":
+                headers["Content-Type"] = "application/merge-patch+json"
+            else:
+                headers["Content-Type"] = "application/json"
 
         try:
             response = self.session.request(
@@ -195,17 +202,20 @@ class NetcupClient:
         """
         return self.request("PUT", path, json=json)
 
-    def patch(self, path: str, json: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def patch(
+        self, path: str, params: Optional[Dict[str, Any]] = None, json: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Make PATCH request.
 
         Args:
             path: API path
+            params: Query parameters
             json: JSON request body
 
         Returns:
             Response data
         """
-        return self.request("PATCH", path, json=json)
+        return self.request("PATCH", path, params=params, json=json)
 
     def delete(self, path: str) -> Dict[str, Any]:
         """Make DELETE request.
