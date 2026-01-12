@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1](https://github.com/DS09AT/netcupctl/compare/v0.3.0...v0.3.1) (2026-01-12)
+
+
+### Documentation
+
+* Correct release date for version 0.1.0 ([2a8206f](https://github.com/DS09AT/netcupctl/commit/2a8206fc8e50e16ece334d66a9aff9d68a887ba6))
+
 ## [0.3.0](https://github.com/DS09AT/netcupctl/compare/v0.2.0...v0.3.0) (2026-01-12)
 
 
