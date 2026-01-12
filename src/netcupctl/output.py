@@ -2,7 +2,7 @@
 
 import json
 import sys
-from typing import Any
+from typing import Any, Optional
 
 from rich.console import Console
 from rich.table import Table
@@ -117,7 +117,7 @@ class OutputFormatter:
         table = self._build_table(normalized_data, all_keys)
         self.console.print(table)
 
-    def _normalize_table_data(self, data: Any) -> list | None:
+    def _normalize_table_data(self, data: Any) -> Optional[list]:
         """Normalize data to list format for table output.
 
         Args:
