@@ -37,9 +37,6 @@ def list(ctx, limit: int):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
 
 
 @servers.command()
@@ -59,9 +56,6 @@ def get(ctx, server_id: str):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
 
 
 @servers.command()
@@ -84,9 +78,6 @@ def start(ctx, server_id: str):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
 
 
 @servers.command()
@@ -109,9 +100,6 @@ def stop(ctx, server_id: str):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
 
 
 @servers.command()
@@ -134,6 +122,3 @@ def reboot(ctx, server_id: str):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)

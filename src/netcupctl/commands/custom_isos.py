@@ -115,7 +115,7 @@ def upload_iso(ctx, file: str, name: str):
             part_number = 1
 
             with open(file, "rb") as f:
-                with click.progressbar(length=file_size, label="Uploading") as bar:
+                with click.progressbar(length=file_size, label="Uploading") as progress:
                     while True:
                         chunk = f.read(chunk_size)
                         if not chunk:
@@ -129,7 +129,7 @@ def upload_iso(ctx, file: str, name: str):
                         etag = part_result.get("etag") or part_result.get("ETag")
                         parts.append({"partNumber": part_number, "etag": etag})
 
-                        bar.update(len(chunk))
+                        progress.update(len(chunk))
                         part_number += 1
 
             complete_result = ctx.client.post(
@@ -140,12 +140,12 @@ def upload_iso(ctx, file: str, name: str):
             ctx.formatter.output(complete_result)
             click.echo("\n[OK] Custom ISO uploaded successfully.", err=False)
 
-        except Exception as e:
+        except (APIError, OSError, IOError) as e:
             click.echo(f"\nUpload failed: {e}", err=True)
             click.echo("Aborting upload...", err=True)
             try:
                 ctx.client.delete(f"/api/v1/users/{user_id}/isos/{key}/{upload_id}")
-            except Exception:
+            except APIError:
                 pass
             sys.exit(1)
 

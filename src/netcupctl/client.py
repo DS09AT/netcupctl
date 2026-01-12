@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from netcupctl.auth import AuthError, AuthManager
+from netcupctl.auth import AuthManager
 
 
 class APIError(Exception):
@@ -84,7 +84,7 @@ class NetcupClient:
                 verify=True,
             )
 
-            if response.status_code in (200, 201):
+            if response.status_code in (200, 201, 202):
                 if response.content:
                     try:
                         return response.json()
@@ -109,7 +109,7 @@ class NetcupClient:
                 try:
                     error_data = response.json()
                     error_msg = self._format_validation_error(error_data)
-                except Exception:
+                except (ValueError, KeyError, requests.JSONDecodeError):
                     error_msg = "Validation error."
                 raise APIError(error_msg, status_code=422)
 
@@ -117,24 +117,27 @@ class NetcupClient:
                 try:
                     error_data = response.json()
                     error_msg = error_data.get("message", error_data.get("error", response.text))
-                except Exception:
+                except (ValueError, KeyError, requests.JSONDecodeError):
                     error_msg = response.text or f"Client error (HTTP {response.status_code})"
                 raise APIError(error_msg, status_code=response.status_code)
 
             elif 500 <= response.status_code < 600:
-                raise APIError(f"Server error (HTTP {response.status_code}). Please try again later.", status_code=response.status_code)
+                msg = f"Server error (HTTP {response.status_code}). Please try again later."
+                raise APIError(msg, status_code=response.status_code)
 
             else:
                 raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
 
-        except requests.ConnectionError:
-            raise APIError("Network error: Could not connect to API. Please check your internet connection.")
+        except requests.ConnectionError as exc:
+            raise APIError(
+                "Network error: Could not connect to API. Please check your internet connection."
+            ) from exc
 
-        except requests.Timeout:
-            raise APIError("Request timeout. The API did not respond in time.")
+        except requests.Timeout as exc:
+            raise APIError("Request timeout. The API did not respond in time.") from exc
 
-        except requests.RequestException as e:
-            raise APIError(f"Request failed: {type(e).__name__}")
+        except requests.RequestException as exc:
+            raise APIError(f"Request failed: {type(exc).__name__}") from exc
 
     def _format_validation_error(self, error_data: Dict[str, Any]) -> str:
         """Format validation error message.
@@ -254,7 +257,7 @@ class NetcupClient:
                 verify=True,
             )
 
-            if response.status_code in (200, 201):
+            if response.status_code in (200, 201, 202):
                 if response.content:
                     try:
                         return response.json()
@@ -280,7 +283,7 @@ class NetcupClient:
                 try:
                     error_data = response.json()
                     error_msg = error_data.get("message", error_data.get("error", response.text))
-                except Exception:
+                except (ValueError, KeyError, requests.JSONDecodeError):
                     error_msg = response.text or f"Client error (HTTP {response.status_code})"
                 raise APIError(error_msg, status_code=response.status_code)
 
@@ -290,11 +293,11 @@ class NetcupClient:
             else:
                 raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
 
-        except requests.ConnectionError:
-            raise APIError("Network error: Could not connect to API.")
+        except requests.ConnectionError as exc:
+            raise APIError("Network error: Could not connect to API.") from exc
 
-        except requests.Timeout:
-            raise APIError("Request timeout during upload.")
+        except requests.Timeout as exc:
+            raise APIError("Request timeout during upload.") from exc
 
-        except requests.RequestException as e:
-            raise APIError(f"Upload failed: {type(e).__name__}")
+        except requests.RequestException as exc:
+            raise APIError(f"Upload failed: {type(exc).__name__}") from exc

@@ -39,24 +39,20 @@ def update():
 
         if result["status"] == "first_download":
             click.echo("[OK] OpenAPI specification downloaded successfully.")
-            click.echo(f"Version: {result['remote_version']}")
+            click.echo(f"Version: {result[\"remote_version\"]}")
             click.echo(f"Location: {manager.spec_file}")
 
         elif result["status"] == "updated":
             click.echo("[OK] OpenAPI specification updated.")
-            click.echo(f"Previous version: {result['local_version']}")
-            click.echo(f"Current version:  {result['remote_version']}")
+            click.echo(f"Previous version: {result[\"local_version\"]}")
+            click.echo(f"Current version:  {result[\"remote_version\"]}")
             click.echo(f"Location: {manager.spec_file}")
 
         else:
             click.echo("[OK] OpenAPI specification is already up to date.")
-            click.echo(f"Version: {result['local_version']}")
+            click.echo(f"Version: {result[\"local_version\"]}")
 
     except SpecError as e:
-        click.echo(f"Error: {e}", err=True)
-        sys.exit(1)
-
-    except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -83,6 +79,6 @@ def show():
             click.echo(f"Expected location: {manager.spec_file}")
             click.echo("\nRun 'netcupctl spec update' to download it.")
 
-    except Exception as e:
+    except SpecError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

@@ -53,7 +53,7 @@ class AuthManager:
             response.raise_for_status()
             device_data = response.json()
         except requests.RequestException as e:
-            raise AuthError(f"Failed to request device code: {type(e).__name__}")
+            raise AuthError(f"Failed to request device code: {type(e).__name__}") from e
 
         device_code = device_data["device_code"]
         verification_uri = device_data["verification_uri_complete"]
@@ -66,8 +66,7 @@ class AuthManager:
         try:
             webbrowser.open(verification_uri)
             print("Browser opened automatically. Please complete authentication.")
-        except Exception:
-            # browser open may fail on headless systems or restricted environments
+        except OSError:
             print("Could not open browser automatically. Please open the URL manually.")
 
         print(f"\nWaiting for authentication (timeout: {expires_in} seconds)...\n")
@@ -128,7 +127,7 @@ class AuthManager:
                     raise AuthError(f"Unexpected response: {response.status_code}")
 
             except requests.RequestException as e:
-                raise AuthError(f"Failed to poll for token: {type(e).__name__}")
+                raise AuthError(f"Failed to poll for token: {type(e).__name__}") from e
 
         raise AuthError("Authentication timeout. Please try again.")
 
@@ -154,8 +153,8 @@ class AuthManager:
             response.raise_for_status()
             userinfo = response.json()
             return userinfo.get("id", userinfo.get("sub", "unknown"))
-        except requests.RequestException:
-            raise AuthError("Failed to get user info")
+        except requests.RequestException as exc:
+            raise AuthError("Failed to get user info") from exc
 
     def logout(self) -> bool:
         """Logout and revoke tokens.
@@ -262,10 +261,10 @@ class AuthManager:
 
             self.config.save_tokens(self._token_data)
 
-        except requests.RequestException:
+        except requests.RequestException as exc:
             self._token_data = None
             self.config.delete_tokens()
-            raise AuthError("Token refresh failed. Please login again.")
+            raise AuthError("Token refresh failed. Please login again.") from exc
 
     def is_authenticated(self) -> bool:
         """Check if user is authenticated.

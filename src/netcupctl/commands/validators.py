@@ -101,8 +101,8 @@ def validate_ipv4(ip: str) -> str:
     try:
         addr = ipaddress.IPv4Address(ip)
         return str(addr)
-    except ipaddress.AddressValueError:
-        raise click.BadParameter("Invalid IPv4 address format")
+    except ipaddress.AddressValueError as exc:
+        raise click.BadParameter("Invalid IPv4 address format") from exc
 
 
 def validate_ipv6(ip: str) -> str:
@@ -120,8 +120,8 @@ def validate_ipv6(ip: str) -> str:
     try:
         addr = ipaddress.IPv6Address(ip)
         return str(addr)
-    except ipaddress.AddressValueError:
-        raise click.BadParameter("Invalid IPv6 address format")
+    except ipaddress.AddressValueError as exc:
+        raise click.BadParameter("Invalid IPv6 address format") from exc
 
 
 def validate_ip(ip: str) -> Tuple[str, str]:
@@ -140,10 +140,9 @@ def validate_ip(ip: str) -> Tuple[str, str]:
         addr = ipaddress.ip_address(ip)
         if isinstance(addr, ipaddress.IPv4Address):
             return str(addr), "v4"
-        else:
-            return str(addr), "v6"
-    except ValueError:
-        raise click.BadParameter("Invalid IP address format")
+        return str(addr), "v6"
+    except ValueError as exc:
+        raise click.BadParameter("Invalid IP address format") from exc
 
 
 def validate_uuid(value: str) -> str:
@@ -161,5 +160,5 @@ def validate_uuid(value: str) -> str:
     try:
         uuid_module.UUID(value)
         return value
-    except ValueError:
-        raise click.BadParameter("Invalid UUID format")
+    except ValueError as exc:
+        raise click.BadParameter("Invalid UUID format") from exc

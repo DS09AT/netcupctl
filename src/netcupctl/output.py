@@ -2,7 +2,7 @@
 
 import json
 import sys
-from typing import Any, Dict, List
+from typing import Any
 
 from rich.console import Console
 from rich.table import Table

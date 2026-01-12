@@ -6,11 +6,10 @@ from typing import Optional
 import click
 
 from netcupctl import __version__
-from netcupctl.auth import AuthManager
-from netcupctl.client import NetcupClient
+from netcupctl.auth import AuthError, AuthManager
+from netcupctl.client import APIError, NetcupClient
 from netcupctl.config import ConfigManager
 from netcupctl.output import OutputFormatter
-from netcupctl.client import APIError
 from netcupctl.commands.custom_images import custom_images
 from netcupctl.commands.custom_isos import custom_isos
 from netcupctl.commands.disks import disks
@@ -99,10 +98,10 @@ def login(ctx):
     """
     try:
         tokens = ctx.auth.login()
-        click.echo(f"\n[OK] Successfully logged in!")
-        click.echo(f"User ID: {tokens.get('user_id', 'unknown')}")
-        click.echo(f"Token expires: {tokens.get('expires_at', 'unknown')}")
-    except Exception as e:
+        click.echo("\n[OK] Successfully logged in!")
+        click.echo(f"User ID: {tokens.get(\"user_id\", \"unknown\")}")
+        click.echo(f"Token expires: {tokens.get(\"expires_at\", \"unknown\")}")
+    except AuthError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -119,7 +118,7 @@ def logout(ctx):
             click.echo("[OK] Successfully logged out.")
         else:
             click.echo("Not logged in.")
-    except Exception as e:
+    except AuthError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -136,12 +135,12 @@ def status(ctx):
         if ctx.auth.is_authenticated():
             info = ctx.auth.get_token_info()
             if info:
-                click.echo(f"Logged in as: {info['user_id']}")
-                click.echo(f"Token valid until: {info['expires_at']}")
+                click.echo(f"Logged in as: {info[\"user_id\"]}")
+                click.echo(f"Token valid until: {info[\"expires_at\"]}")
         else:
             click.echo("Not logged in.")
             click.echo("\nRun 'netcupctl auth login' to authenticate.")
-    except Exception as e:
+    except AuthError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
@@ -198,8 +197,8 @@ def main():
     except KeyboardInterrupt:
         click.echo("\n\nInterrupted by user.", err=True)
         sys.exit(130)
-    except Exception as e:
-        click.echo(f"Unexpected error: {e}", err=True)
+    except (AuthError, APIError) as e:
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
 

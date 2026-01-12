@@ -82,13 +82,13 @@ class SpecManager:
             return spec
 
         except requests.RequestException as e:
-            raise SpecError(f"Failed to download OpenAPI spec: {type(e).__name__}")
+            raise SpecError(f"Failed to download OpenAPI spec: {type(e).__name__}") from e
         except (ValueError, KeyError) as e:
-            raise SpecError(f"Invalid OpenAPI spec format: {type(e).__name__}")
+            raise SpecError(f"Invalid OpenAPI spec format: {type(e).__name__}") from e
+        except SpecError:
+            raise
         except Exception as e:
-            if isinstance(e, SpecError):
-                raise
-            raise SpecError(f"Unexpected error: {type(e).__name__}")
+            raise SpecError(f"Unexpected error: {type(e).__name__}") from e
 
     def get_remote_version(self, spec_data: Dict[str, Any]) -> str:
         """Extract version from OpenAPI spec data.
@@ -107,8 +107,8 @@ class SpecManager:
             if not version:
                 raise SpecError("Version field is empty")
             return version
-        except KeyError:
-            raise SpecError("Missing 'info.version' field in OpenAPI spec")
+        except KeyError as exc:
+            raise SpecError("Missing 'info.version' field in OpenAPI spec") from exc
 
     def save_spec(self, spec_data: Dict[str, Any]) -> None:
         """Save OpenAPI spec to file atomically.
@@ -141,14 +141,16 @@ class SpecManager:
                     temp_file.unlink()
                 except OSError:
                     pass
-            raise SpecError(f"Failed to save OpenAPI spec: {type(e).__name__}")
-        except Exception:
+            raise SpecError(f"Failed to save OpenAPI spec: {type(e).__name__}") from e
+        except SpecError:
+            raise
+        except Exception as exc:
             if temp_file.exists():
                 try:
                     temp_file.unlink()
                 except OSError:
                     pass
-            raise SpecError("Failed to save OpenAPI spec: unexpected error")
+            raise SpecError("Failed to save OpenAPI spec: unexpected error") from exc
 
     def update_spec(self) -> Dict[str, Optional[str]]:
         """Update OpenAPI specification if version has changed.

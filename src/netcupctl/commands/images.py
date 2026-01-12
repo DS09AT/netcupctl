@@ -68,7 +68,10 @@ def show_image(ctx, server_id: str):
 @click.option("--confirm", is_flag=True, help="Confirm the installation")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.pass_obj
-def install_image(ctx, server_id: str, flavour: str, hostname: str, password: str, ssh_keys: str, confirm: bool, yes: bool):
+def install_image(
+    ctx, server_id: str, flavour: str, hostname: str,
+    password: str, ssh_keys: str, confirm: bool, yes: bool
+):
     """Install an OS image on a server.
 
     WARNING: This will OVERWRITE ALL DATA on the server!
@@ -136,7 +139,8 @@ def install_custom_image(ctx, server_id: str, image_key: str, confirm: bool, yes
         image_data = {"key": image_key}
         result = ctx.client.post(f"/api/v1/servers/{server_id}/user-image", json=image_data)
         ctx.formatter.output(result)
-        click.echo("\n[OK] Custom image installation started. Use 'netcupctl tasks list' to monitor progress.", err=False)
+        msg = "[OK] Custom image installation started. Use 'netcupctl tasks list' to monitor."
+        click.echo(f"\n{msg}", err=False)
     except click.Abort:
         click.echo("Aborted.", err=True)
         sys.exit(1)

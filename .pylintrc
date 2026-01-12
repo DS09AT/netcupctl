@@ -1,0 +1,154 @@
+# Pylint configuration for netcupctl
+# STRICT configuration for public open-source project
+#
+# This configuration enforces high code quality standards while
+# accommodating essential Click CLI patterns.
+
+[MAIN]
+# Minimum score required to pass (0-10) - STRICT for open-source
+fail-under = 9.5
+
+# Use multiple processes for speed
+jobs = 0
+
+# Only analyze Python files in src/
+source-roots = src
+
+# Pickle collected data for incremental analysis
+persistent = yes
+
+# Warn about useless pylint: disable comments
+enable = useless-suppression
+
+[MESSAGES CONTROL]
+# MINIMAL disable list - only Click framework incompatibilities
+#
+# too-many-arguments: Click decorators (@click.option, @click.argument)
+#                     naturally add many parameters to command functions
+#
+# unused-argument: Click group functions receive 'ctx' via @pass_context
+#                  decorators but may not use it directly
+#
+# too-few-public-methods: Click command groups are containers for
+#                         subcommands, not traditional classes
+#
+# invalid-name: Click commands commonly use Python builtin names
+#               like 'list', 'get', 'set' as function names
+#
+# unnecessary-pass: Click group functions use pass as placeholder body
+#
+# redefined-builtin: Click commands use names like 'list', 'format'
+#
+# too-many-positional-arguments: Click decorators add parameters
+disable =
+    too-many-arguments,
+    unused-argument,
+    too-few-public-methods,
+    invalid-name,
+    unnecessary-pass,
+    redefined-builtin,
+    too-many-positional-arguments
+
+[FORMAT]
+# Maximum line length (120 for API paths and help strings)
+max-line-length = 120
+
+# Expected indentation (4 spaces)
+indent-string = '    '
+
+# Expect 2 blank lines after top-level definitions
+expected-line-ending-format = LF
+
+[DESIGN]
+# Maximum number of arguments for functions/methods
+max-args = 6
+
+# Maximum number of local variables (stricter)
+max-locals = 12
+
+# Maximum number of branches (stricter)
+max-branches = 10
+
+# Maximum number of statements per function
+max-statements = 45
+
+# Maximum number of attributes for a class
+max-attributes = 10
+
+# Maximum number of public methods for a class
+max-public-methods = 20
+
+# Minimum number of public methods for a class
+min-public-methods = 1
+
+# Classes to exclude from min-public-methods check
+exclude-too-few-public-methods =
+
+[BASIC]
+# Good variable names that should always be accepted
+# ctx: Standard Click context parameter
+# e: Exception variable in except blocks
+# f: File handle variable
+# i,j,k: Loop counters
+# v: Value in dict iteration
+# ip: IP address variable
+# id: Identifier (used in API responses)
+good-names = ctx,e,f,i,j,k,v,ip,id
+
+# Regular expression for valid function names
+function-rgx = [a-z_][a-z0-9_]{1,50}$
+
+# Regular expression for valid method names
+method-rgx = [a-z_][a-z0-9_]{1,50}$
+
+# Regular expression for valid module names
+module-rgx = [a-z_][a-z0-9_]*$
+
+# Regular expression for valid class names
+class-rgx = [A-Z_][a-zA-Z0-9]+$
+
+# Regular expression for valid constant names
+const-rgx = (([A-Z_][A-Z0-9_]*)|(__.*__))$
+
+[IMPORTS]
+# Force import order: standard library, third-party, local
+known-third-party = click,requests,rich
+
+[LOGGING]
+# Format style for logging (old %, new {}, or fstr f-strings)
+logging-format-style = new
+
+[MISCELLANEOUS]
+# List of note tags to take into consideration (extended for open-source)
+notes = FIXME,XXX,TODO,HACK,BUG,SECURITY,DEPRECATED
+
+[SIMILARITIES]
+# Minimum lines of similarity for duplication detection
+min-similarity-lines = 6
+
+# Ignore comments when checking for similarities
+ignore-comments = yes
+
+# Ignore docstrings when checking for similarities
+ignore-docstrings = yes
+
+# Ignore imports when checking for similarities
+ignore-imports = yes
+
+[STRING]
+# Check for consistent quote style
+check-quote-consistency = yes
+
+[TYPECHECK]
+# List of module names for which member attributes should not be checked
+ignored-modules = click
+
+[VARIABLES]
+# List of additional names supposed to be defined in builtins
+additional-builtins =
+
+# List of strings which can identify a callback function by name
+callbacks = cb_,_cb
+
+# Tells whether we should check for unused import in __init__ files
+init-import = no

@@ -1,5 +1,6 @@
 """VLAN management commands."""
 
+import json
 import sys
 
 import click
@@ -90,8 +91,6 @@ def update_vlan(ctx, vlan_id: str, name: str, data: str):
     Arguments:
         VLAN_ID: The ID of the VLAN to update
     """
-    import json
-
     try:
         user_id = get_authenticated_user_id(ctx)
         vlan_data = {}

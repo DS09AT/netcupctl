@@ -1,5 +1,6 @@
 """User management commands."""
 
+import json
 import sys
 
 import click
@@ -41,8 +42,6 @@ def update_user(ctx, data: str):
 
     Provide user data as a JSON string.
     """
-    import json
-
     try:
         user_id = get_authenticated_user_id(ctx)
         user_data = json.loads(data)
