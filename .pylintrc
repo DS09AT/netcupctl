@@ -40,6 +40,9 @@ enable = useless-suppression
 # redefined-builtin: Click commands use names like 'list', 'format'
 #
 # too-many-positional-arguments: Click decorators add parameters
+#
+# duplicate-code: CLI commands naturally have similar patterns for
+#                 error handling, confirmations, and API interactions
 disable =
     too-many-arguments,
     unused-argument,
@@ -47,7 +50,8 @@ disable =
     invalid-name,
     unnecessary-pass,
     redefined-builtin,
-    too-many-positional-arguments
+    too-many-positional-arguments,
+    duplicate-code
 
 [FORMAT]
 # Maximum line length (120 for API paths and help strings)
