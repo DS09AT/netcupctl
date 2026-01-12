@@ -7,50 +7,6 @@ Manage your netcup vServers and root servers from the command line with automati
 
 > **Disclaimer**: This is an unofficial, community-developed tool and is not affiliated with, endorsed by, or supported by netcup GmbH. Use at your own risk.
 
-## Available Commands
-
-**Authentication & Server Management**
-- `netcupctl auth login | logout | status` - OAuth2 authentication
-- `netcupctl servers list | get | start | stop | reboot <server-id>` - Server control
-- `netcupctl ping` - API health check
-- `netcupctl maintenance` - Maintenance status
-
-**Storage & Snapshots**
-- `netcupctl disks list | get | drivers | set-driver | format <server-id> [disk]` - Disk management
-- `netcupctl snapshots list | get | create | delete | revert | export | dryrun <server-id> [name]` - Snapshot operations
-- `netcupctl storage show | optimize <server-id>` - Storage optimization
-
-**Network & Firewall**
-- `netcupctl interfaces list | get | create | update | delete <server-id> [mac]` - Network interfaces
-- `netcupctl vlans list | get | update <vlan-id>` - VLAN management
-- `netcupctl rdns get | set | delete <server-id> <ip>` - Reverse DNS
-- `netcupctl failover-ips list | get | update <id>` - Failover IP management
-- `netcupctl firewall show | set | reapply | restore <server-id>` - Firewall rules
-- `netcupctl firewall-policies list | get | create | update | delete [id]` - Firewall policies
-
-**Monitoring & Logs**
-- `netcupctl logs <server-id>` - Server logs
-- `netcupctl metrics cpu | disk | network | network-packets <server-id>` - Resource metrics
-- `netcupctl tasks list | get | cancel [task-id]` - Task management
-- `netcupctl user-logs` - User activity logs
-
-**Images & ISOs**
-- `netcupctl images list | show | install | install-custom <server-id>` - OS image management
-- `netcupctl custom-images list | get | upload | delete [key]` - Custom image upload
-- `netcupctl iso images | show | mount | unmount <server-id>` - ISO mounting
-- `netcupctl custom-isos list | get | upload | delete [key]` - Custom ISO upload
-
-**Security & Access**
-- `netcupctl ssh-keys list | add | delete [key-id]` - SSH key management
-- `netcupctl rescue show | enable | disable <server-id>` - Rescue system
-- `netcupctl guest-agent show | enable | disable <server-id>` - Guest agent control
-- `netcupctl users get | update` - User profile management
-
-**Utilities**
-- `netcupctl spec update | show` - OpenAPI specification management
-
-Use `netcupctl <command> --help` to see all available options and flags.
-
 ## Installation
 
 ### Requirements
@@ -106,6 +62,52 @@ netcupctl servers stop <server-id>
 # Reboot a server
 netcupctl servers reboot <server-id>
 ```
+
+## Available Commands
+
+Use `netcupctl <command> --help` to see all available options and flags.
+
+### Overview
+
+**Authentication & Server Management**
+- `netcupctl auth login | logout | status` - OAuth2 authentication
+- `netcupctl servers list | get | start | stop | reboot <server-id>` - Server control
+- `netcupctl ping` - API health check
+- `netcupctl maintenance` - Maintenance status
+
+**Storage & Snapshots**
+- `netcupctl disks list | get | drivers | set-driver | format <server-id> [disk]` - Disk management
+- `netcupctl snapshots list | get | create | delete | revert | export | dryrun <server-id> [name]` - Snapshot operations
+- `netcupctl storage show | optimize <server-id>` - Storage optimization
+
+**Network & Firewall**
+- `netcupctl interfaces list | get | create | update | delete <server-id> [mac]` - Network interfaces
+- `netcupctl vlans list | get | update <vlan-id>` - VLAN management
+- `netcupctl rdns get | set | delete <server-id> <ip>` - Reverse DNS
+- `netcupctl failover-ips list | get | update <id>` - Failover IP management
+- `netcupctl firewall show | set | reapply | restore <server-id>` - Firewall rules
+- `netcupctl firewall-policies list | get | create | update | delete [id]` - Firewall policies
+
+**Monitoring & Logs**
+- `netcupctl logs <server-id>` - Server logs
+- `netcupctl metrics cpu | disk | network | network-packets <server-id>` - Resource metrics
+- `netcupctl tasks list | get | cancel [task-id]` - Task management
+- `netcupctl user-logs` - User activity logs
+
+**Images & ISOs**
+- `netcupctl images list | show | install | install-custom <server-id>` - OS image management
+- `netcupctl custom-images list | get | upload | delete [key]` - Custom image upload
+- `netcupctl iso images | show | mount | unmount <server-id>` - ISO mounting
+- `netcupctl custom-isos list | get | upload | delete [key]` - Custom ISO upload
+
+**Security & Access**
+- `netcupctl ssh-keys list | add | delete [key-id]` - SSH key management
+- `netcupctl rescue show | enable | disable <server-id>` - Rescue system
+- `netcupctl guest-agent show | enable | disable <server-id>` - Guest agent control
+- `netcupctl users get | update` - User profile management
+
+**Utilities**
+- `netcupctl spec update | show` - OpenAPI specification management
 
 ## Output Formats
 
