@@ -105,39 +105,78 @@ class OutputFormatter:
         Args:
             data: Data to output (expects list of dicts or single dict)
         """
+        normalized_data = self._normalize_table_data(data)
+        if normalized_data is None:
+            return
+
+        all_keys = self._collect_all_keys(normalized_data)
+        if not all_keys:
+            self.console.print("[yellow]No data[/yellow]")
+            return
+
+        table = self._build_table(normalized_data, all_keys)
+        self.console.print(table)
+
+    def _normalize_table_data(self, data: Any) -> list | None:
+        """Normalize data to list format for table output.
+
+        Args:
+            data: Input data
+
+        Returns:
+            Normalized list or None if no data
+        """
         if isinstance(data, dict):
             if not data:
                 self.console.print("[yellow]No data[/yellow]")
-                return
-            data = [data]
+                return None
+            return [data]
 
         if isinstance(data, list):
             if not data:
                 self.console.print("[yellow]No data[/yellow]")
-                return
+                return None
+            return data
 
-            all_keys = set()
-            for item in data:
-                if isinstance(item, dict):
-                    all_keys.update(item.keys())
+        self.console.print(str(data))
+        return None
 
-            if not all_keys:
-                self.console.print("[yellow]No data[/yellow]")
-                return
+    def _collect_all_keys(self, data: list) -> set:
+        """Collect all keys from list of dicts.
 
-            table = Table(show_header=True, header_style="bold cyan")
+        Args:
+            data: List of dictionaries
 
-            for key in sorted(all_keys):
-                table.add_column(str(key))
+        Returns:
+            Set of all keys found
+        """
+        all_keys = set()
+        for item in data:
+            if isinstance(item, dict):
+                all_keys.update(item.keys())
+        return all_keys
 
-            for item in data:
-                if isinstance(item, dict):
-                    row = [self._format_value(item.get(key, "")) for key in sorted(all_keys)]
-                    table.add_row(*row)
+    def _build_table(self, data: list, all_keys: set) -> Table:
+        """Build rich Table from data and keys.
 
-            self.console.print(table)
-        else:
-            self.console.print(str(data))
+        Args:
+            data: List of dictionaries
+            all_keys: Set of all keys to include
+
+        Returns:
+            Constructed Table object
+        """
+        table = Table(show_header=True, header_style="bold cyan")
+
+        for key in sorted(all_keys):
+            table.add_column(str(key))
+
+        for item in data:
+            if isinstance(item, dict):
+                row = [self._format_value(item.get(key, "")) for key in sorted(all_keys)]
+                table.add_row(*row)
+
+        return table
 
     def _format_value(self, value: Any, depth: int = 0, max_depth: int = 4) -> str:
         """Format a value for table display.
@@ -152,14 +191,13 @@ class OutputFormatter:
         """
         if value is None:
             return ""
-        elif isinstance(value, bool):
+        if isinstance(value, bool):
             return "Yes" if value else "No"
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             return self._format_dict(value, depth, max_depth)
-        elif isinstance(value, list):
+        if isinstance(value, list):
             return self._format_list(value, depth, max_depth)
-        else:
-            return str(value)
+        return str(value)
 
     def _format_dict(self, value: dict, depth: int, max_depth: int) -> str:
         """Format a dictionary for table display.
@@ -211,15 +249,15 @@ class OutputFormatter:
         if all_primitives:
             formatted_items = [self._format_value(item, depth + 1, max_depth) for item in value]
             return ", ".join(formatted_items)
-        else:
-            formatted_items = []
-            for item in value:
-                formatted = self._format_value(item, depth + 1, max_depth)
-                if depth > 0 or isinstance(item, dict):
-                    formatted = formatted.replace("\n", " | ")
-                formatted_items.append(formatted)
 
-            if depth == 0:
-                return "\n• " + "\n• ".join(formatted_items)
-            else:
-                return "; ".join(formatted_items)
+        formatted_items = []
+        for item in value:
+            formatted = self._format_value(item, depth + 1, max_depth)
+            if depth > 0 or isinstance(item, dict):
+                formatted = formatted.replace("\n", " | ")
+            formatted_items.append(formatted)
+
+        if depth == 0:
+            return "\n• " + "\n• ".join(formatted_items)
+
+        return "; ".join(formatted_items)
