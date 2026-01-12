@@ -179,7 +179,7 @@ class SpecManager:
                 "remote_version": remote_version,
             }
 
-        elif local_version != remote_version:
+        if local_version != remote_version:
             self.save_spec(remote_spec)
             return {
                 "status": "updated",
@@ -187,9 +187,8 @@ class SpecManager:
                 "remote_version": remote_version,
             }
 
-        else:
-            return {
-                "status": "up_to_date",
-                "local_version": local_version,
-                "remote_version": remote_version,
-            }
+        return {
+            "status": "up_to_date",
+            "local_version": local_version,
+            "remote_version": remote_version,
+        }
