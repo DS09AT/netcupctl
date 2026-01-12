@@ -132,6 +132,7 @@ def update_user(ctx, language, timezone, api_ip_restrictions, show_nickname,
         current_data = ctx.client.get(f"/api/v1/users/{user_id}")
 
         update_data = {
+            "id": current_data.get("id"),
             "language": current_data.get("language", "en"),
             "timeZone": current_data.get("timeZone") or "UTC",
         }
@@ -196,6 +197,7 @@ def _update_interactive(ctx, user_id):
         click.echo()
 
         update_data = {
+            "id": current_data.get("id"),
             "language": click.prompt(
                 "Language (en/de)",
                 default=current_data.get("language", "en"),
@@ -209,10 +211,10 @@ def _update_interactive(ctx, user_id):
 
         api_ip_restrictions = click.prompt(
             "API IP restrictions (leave empty for none)",
-            default=current_data.get("apiIpLoginRestrictions", ""),
+            default=current_data.get("apiIpLoginRestrictions") or "",
             show_default=False
         )
-        if api_ip_restrictions:
+        if api_ip_restrictions.strip():
             update_data["apiIpLoginRestrictions"] = api_ip_restrictions
 
         update_data["showNickname"] = click.confirm(
