@@ -10,8 +10,31 @@ from netcupctl.auth import AuthManager
 from netcupctl.client import NetcupClient
 from netcupctl.config import ConfigManager
 from netcupctl.output import OutputFormatter
+from netcupctl.client import APIError
+from netcupctl.commands.custom_images import custom_images
+from netcupctl.commands.custom_isos import custom_isos
+from netcupctl.commands.disks import disks
+from netcupctl.commands.failover_ips import failover_ips
+from netcupctl.commands.firewall import firewall
+from netcupctl.commands.firewall_policies import firewall_policies
+from netcupctl.commands.guest_agent import guest_agent
+from netcupctl.commands.images import images
+from netcupctl.commands.interfaces import interfaces
+from netcupctl.commands.iso import iso
+from netcupctl.commands.logs import logs
+from netcupctl.commands.maintenance import maintenance
+from netcupctl.commands.metrics import metrics
+from netcupctl.commands.rdns import rdns
+from netcupctl.commands.rescue import rescue
 from netcupctl.commands.servers import servers
+from netcupctl.commands.snapshots import snapshots
 from netcupctl.commands.spec import spec
+from netcupctl.commands.ssh_keys import ssh_keys
+from netcupctl.commands.storage import storage
+from netcupctl.commands.tasks import tasks
+from netcupctl.commands.user_logs import user_logs
+from netcupctl.commands.users import users
+from netcupctl.commands.vlans import vlans
 
 
 class Context:
@@ -52,8 +75,8 @@ def cli(ctx, format: str, verbose: bool):
     context = Context()
     context.formatter = OutputFormatter(format=format.lower())
 
-    # Only initialize client if command needs it
-    if ctx.invoked_subcommand not in ("auth", "spec"):
+    commands_without_client = ("auth", "spec")
+    if ctx.invoked_subcommand not in commands_without_client:
         context.client = NetcupClient(context.auth)
 
     ctx.obj = context
@@ -123,9 +146,49 @@ def status(ctx):
         sys.exit(1)
 
 
-# Register command groups
+@cli.command()
+@click.pass_obj
+def ping(ctx):
+    """Check if the API is available.
+
+    Performs a simple health check against the API.
+    """
+    try:
+        result = ctx.client.get("/api/ping")
+        # API returns plain text "OK", client wraps it in {"data": "OK"}
+        if isinstance(result, dict) and "data" in result:
+            click.echo(result["data"])
+        else:
+            click.echo("OK")
+    except APIError as e:
+        click.echo(f"API unavailable: {e}", err=True)
+        sys.exit(e.status_code or 1)
+
+
+cli.add_command(custom_images)
+cli.add_command(custom_isos)
+cli.add_command(disks)
+cli.add_command(failover_ips)
+cli.add_command(firewall)
+cli.add_command(firewall_policies)
+cli.add_command(guest_agent)
+cli.add_command(images)
+cli.add_command(interfaces)
+cli.add_command(iso)
+cli.add_command(logs)
+cli.add_command(maintenance)
+cli.add_command(metrics)
+cli.add_command(rdns)
+cli.add_command(rescue)
 cli.add_command(servers)
+cli.add_command(snapshots)
 cli.add_command(spec)
+cli.add_command(ssh_keys)
+cli.add_command(storage)
+cli.add_command(tasks)
+cli.add_command(user_logs)
+cli.add_command(users)
+cli.add_command(vlans)
 
 
 def main():

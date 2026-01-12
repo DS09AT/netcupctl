@@ -1,30 +1,11 @@
 """Server management commands."""
 
-import re
 import sys
 
 import click
 
 from netcupctl.client import APIError
-
-
-def validate_server_id(server_id: str) -> str:
-    """Validate server ID to prevent injection attacks.
-
-    Args:
-        server_id: Server ID to validate
-
-    Returns:
-        Validated server ID
-
-    Raises:
-        click.BadParameter: If server ID is invalid
-    """
-    if not re.match(r'^[a-zA-Z0-9_-]+$', server_id):
-        raise click.BadParameter("Server ID contains invalid characters")
-    if len(server_id) > 64:
-        raise click.BadParameter("Server ID is too long")
-    return server_id
+from netcupctl.commands.validators import validate_server_id
 
 
 @click.group()

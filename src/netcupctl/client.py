@@ -214,3 +214,87 @@ class NetcupClient:
             Response data
         """
         return self.request("DELETE", path)
+
+    def put_binary(
+        self,
+        path: str,
+        data: bytes,
+        content_type: str = "application/octet-stream",
+    ) -> Dict[str, Any]:
+        """Make PUT request with binary data.
+
+        Args:
+            path: API path
+            data: Binary data to upload
+            content_type: Content type header
+
+        Returns:
+            Response data
+
+        Raises:
+            APIError: If request fails
+        """
+        access_token = self.auth.get_access_token()
+        if not access_token:
+            print("Error: Not authenticated. Please run 'netcupctl auth login' first.", file=sys.stderr)
+            sys.exit(1)
+
+        url = f"{self.BASE_URL}{path}"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": content_type,
+        }
+
+        try:
+            response = self.session.put(
+                url=url,
+                headers=headers,
+                data=data,
+                timeout=300,  # Longer timeout for uploads
+                verify=True,
+            )
+
+            if response.status_code in (200, 201):
+                if response.content:
+                    try:
+                        return response.json()
+                    except requests.JSONDecodeError:
+                        etag = response.headers.get("ETag", "")
+                        return {"etag": etag, "data": response.text}
+                else:
+                    return {"etag": response.headers.get("ETag", "")}
+
+            elif response.status_code == 204:
+                return {"etag": response.headers.get("ETag", "")}
+
+            elif response.status_code == 401:
+                raise APIError("Authentication failed. Please login again.", status_code=401)
+
+            elif response.status_code == 403:
+                raise APIError("Access forbidden.", status_code=403)
+
+            elif response.status_code == 404:
+                raise APIError("Resource not found.", status_code=404)
+
+            elif 400 <= response.status_code < 500:
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get("message", error_data.get("error", response.text))
+                except Exception:
+                    error_msg = response.text or f"Client error (HTTP {response.status_code})"
+                raise APIError(error_msg, status_code=response.status_code)
+
+            elif 500 <= response.status_code < 600:
+                raise APIError(f"Server error (HTTP {response.status_code})", status_code=response.status_code)
+
+            else:
+                raise APIError(f"Unexpected response (HTTP {response.status_code})", status_code=response.status_code)
+
+        except requests.ConnectionError:
+            raise APIError("Network error: Could not connect to API.")
+
+        except requests.Timeout:
+            raise APIError("Request timeout during upload.")
+
+        except requests.RequestException as e:
+            raise APIError(f"Upload failed: {type(e).__name__}")
