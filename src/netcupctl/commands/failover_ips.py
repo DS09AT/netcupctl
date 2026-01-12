@@ -30,35 +30,55 @@ def list_failover_ips(ctx, ip_version: str):
         results = []
 
         if ip_version is None or ip_version == "v4":
-            try:
-                v4_result = ctx.client.get(f"/api/v1/users/{user_id}/failoverips/v4")
-                if isinstance(v4_result, list):
-                    for ip in v4_result:
-                        ip["_version"] = "v4"
-                    results.extend(v4_result)
-                elif v4_result:
-                    v4_result["_version"] = "v4"
-                    results.append(v4_result)
-            except APIError:
-                pass  # No v4 failover IPs
+            results.extend(_fetch_failover_ips(ctx, user_id, "v4"))
 
         if ip_version is None or ip_version == "v6":
-            try:
-                v6_result = ctx.client.get(f"/api/v1/users/{user_id}/failoverips/v6")
-                if isinstance(v6_result, list):
-                    for ip in v6_result:
-                        ip["_version"] = "v6"
-                    results.extend(v6_result)
-                elif v6_result:
-                    v6_result["_version"] = "v6"
-                    results.append(v6_result)
-            except APIError:
-                pass  # No v6 failover IPs
+            results.extend(_fetch_failover_ips(ctx, user_id, "v6"))
 
         ctx.formatter.output(results)
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
+
+
+def _fetch_failover_ips(ctx, user_id: str, version: str):
+    """Fetch failover IPs for a specific version.
+
+    Args:
+        ctx: Click context
+        user_id: User ID
+        version: IP version (v4 or v6)
+
+    Returns:
+        List of failover IPs with version tag
+    """
+    try:
+        result = ctx.client.get(f"/api/v1/users/{user_id}/failoverips/{version}")
+        return _normalize_failover_result(result, version)
+    except APIError:
+        return []
+
+
+def _normalize_failover_result(result, version: str):
+    """Normalize failover IP result to list format.
+
+    Args:
+        result: API response (dict or list)
+        version: IP version tag to add
+
+    Returns:
+        List of failover IPs with version tag
+    """
+    if isinstance(result, list):
+        for ip in result:
+            ip["_version"] = version
+        return result
+
+    if result:
+        result["_version"] = version
+        return [result]
+
+    return []
 
 
 @failover_ips.command("get")
