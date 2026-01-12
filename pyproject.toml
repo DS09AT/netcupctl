@@ -35,6 +35,7 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "requests-mock>=1.11.0",
     "pylint>=3.0.0",
 ]
 
@@ -57,3 +58,38 @@ netcupctl = ["py.typed"]
 source-roots = ["src"]
 
 ignore-patterns = ["test_.*\\.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--cov=netcupctl",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-branch",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "security: Security-related tests",
+]
+
+[tool.coverage.run]
+source = ["src/netcupctl"]
+branch = true
+omit = ["*/tests/*", "*/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+fail_under = 50
+show_missing = true
