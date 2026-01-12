@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Add server status and poweroff commands, improve server state handling ([f6e6014](https://github.com/DS09AT/netcupctl/commit/f6e6014dfffa8fe432ed626fdef2b8a3e8f2aef4))
 
-## [0.1.0] - 2025-01-12
+## [0.1.0] - 2026-01-12
 
 ### Added
 
