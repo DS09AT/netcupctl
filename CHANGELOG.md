@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/DS09AT/netcupctl/compare/v0.3.1...v0.4.0) (2026-01-13)
+
+
+### Features
+
+* Add YAML output support to netcupctl ([c7c93e5](https://github.com/DS09AT/netcupctl/commit/c7c93e5e14643b8ee4cb4932bb57854d13c4e6d3))
+
+
+### Documentation
+
+* Improve help command usage examples in README ([d70436c](https://github.com/DS09AT/netcupctl/commit/d70436ce61e299d59bf1448dc4ddb973c3aed797))
+* Update CHANGELOG with expanded feature list ([9ac0fee](https://github.com/DS09AT/netcupctl/commit/9ac0feec408395d39ccb45110d467f97e67100b5))
+
 ## [0.3.1](https://github.com/DS09AT/netcupctl/compare/v0.3.0...v0.3.1) (2026-01-12)
 
 
