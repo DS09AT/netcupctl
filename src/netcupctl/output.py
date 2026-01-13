@@ -63,7 +63,7 @@ class OutputFormatter:
         """
         try:
             yaml_str = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
-            print(yaml_str, end='')
+            print(yaml_str, end="")
         except (TypeError, ValueError):
             print("Error: Could not format data as YAML", file=sys.stderr)
 

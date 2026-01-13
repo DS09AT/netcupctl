@@ -27,13 +27,15 @@ class NetcupClient:
 
     BASE_URL = "https://www.servercontrolpanel.de/scp-core"
 
-    def __init__(self, auth: AuthManager):
+    def __init__(self, auth: AuthManager, verbose: bool = False):
         """Initialize API client.
 
         Args:
             auth: Authentication manager
+            verbose: Enable verbose logging
         """
         self.auth = auth
+        self.verbose = verbose
         self.session = requests.Session()
         self.session.headers.update(
             {
@@ -66,6 +68,13 @@ class NetcupClient:
         headers = self._build_headers(method, json is not None)
         url = f"{self.BASE_URL}{path}"
 
+        if self.verbose:
+            print(f"[VERBOSE] {method.upper()} {url}", file=sys.stderr)
+            if params:
+                print(f"[VERBOSE] Query params: {params}", file=sys.stderr)
+            if json:
+                print(f"[VERBOSE] Request body: {json}", file=sys.stderr)
+
         try:
             response = self.session.request(
                 method=method.upper(),
@@ -76,6 +85,10 @@ class NetcupClient:
                 timeout=30,
                 verify=True,
             )
+
+            if self.verbose:
+                print(f"[VERBOSE] Response status: {response.status_code}", file=sys.stderr)
+
             return self._handle_response(response)
 
         except requests.ConnectionError as exc:

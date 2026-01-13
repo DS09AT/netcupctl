@@ -45,6 +45,7 @@ class Context:
         self.auth = AuthManager(self.config)
         self.client: Optional[NetcupClient] = None
         self.formatter: Optional[OutputFormatter] = None
+        self.verbose: bool = False
 
 
 pass_context = click.make_pass_decorator(Context, ensure=True)
@@ -73,10 +74,11 @@ def cli(ctx, format: str, verbose: bool):
     # Initialize context
     context = Context()
     context.formatter = OutputFormatter(format=format.lower())
+    context.verbose = verbose
 
     commands_without_client = ("auth", "spec")
     if ctx.invoked_subcommand not in commands_without_client:
-        context.client = NetcupClient(context.auth)
+        context.client = NetcupClient(context.auth, verbose=verbose)
 
     ctx.obj = context
 
