@@ -53,7 +53,7 @@ pass_context = click.make_pass_decorator(Context, ensure=True)
 @click.group()
 @click.option(
     "--format",
-    type=click.Choice(["json", "table", "list"], case_sensitive=False),
+    type=click.Choice(["json", "yaml", "table", "list"], case_sensitive=False),
     default="list",
     help="Output format (default: list)",
 )

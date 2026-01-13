@@ -134,6 +134,9 @@ netcupctl --format table servers list
 
 # JSON format - for scripting
 netcupctl --format json servers list | jq '.[] | .hostname'
+
+# YAML format - for configuration management
+netcupctl --format yaml servers list
 ```
 
 ## API Documentation

@@ -4,6 +4,7 @@ import json
 import sys
 from typing import Any, Optional
 
+import yaml
 from rich.console import Console
 from rich.table import Table
 
@@ -20,7 +21,7 @@ class OutputFormatter:
         """Initialize output formatter.
 
         Args:
-            format: Output format ('json', 'table', or 'list')
+            format: Output format ('json', 'yaml', 'table', or 'list')
         """
         self.format = format
         self.console = Console(legacy_windows=False, safe_box=True)
@@ -33,6 +34,8 @@ class OutputFormatter:
         """
         if self.format == "json":
             self._output_json(data)
+        elif self.format == "yaml":
+            self._output_yaml(data)
         elif self.format == "table":
             self._output_table(data)
         elif self.format == "list":
@@ -51,6 +54,18 @@ class OutputFormatter:
             print(json_str)
         except (TypeError, ValueError):
             print("Error: Could not format data as JSON", file=sys.stderr)
+
+    def _output_yaml(self, data: Any) -> None:
+        """Output data as YAML.
+
+        Args:
+            data: Data to output
+        """
+        try:
+            yaml_str = yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            print(yaml_str, end='')
+        except (TypeError, ValueError):
+            print("Error: Could not format data as YAML", file=sys.stderr)
 
     def _output_list(self, data: Any) -> None:
         """Output data in list view format (human-readable key-value).
