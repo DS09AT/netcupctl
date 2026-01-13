@@ -71,7 +71,13 @@ netcupctl servers reboot <server-id>
 
 ## Available Commands
 
-Use `netcupctl <command> --help` to see all available options and flags.
+All commands support `--help` to show usage details and available options:
+
+```bash
+netcupctl --help                  # Show all commands
+netcupctl servers --help          # Show server commands
+netcupctl servers start --help    # Show command details
+```
 
 ### Overview
 
