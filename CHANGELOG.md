@@ -38,23 +38,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of netcupctl CLI tool
 - Core CLI framework with Click
+- OAuth2 device flow authentication
 - Server Control Panel REST API client
-- Server management commands (list, get, start, stop, restart, reset)
-- Failover IP management commands
-- Reverse DNS (rDNS) management commands
-- Resource management commands (storage, snapshots, images)
+- Server management commands (list, get, start, stop, reboot)
+- Failover IP management commands (list, get, update)
+- Reverse DNS (rDNS) management commands (get, set, delete)
+- Disk management commands (list, get, format, set driver)
+- Snapshot management commands (list, get, create, delete, revert, export, dry-run)
+- Storage optimization commands
+- Image management commands (list, show, install, custom images)
+- ISO management commands (list, mount, unmount, custom ISOs)
+- Network interface management (list, get, create, update, delete)
+- VLAN management commands
+- Firewall management (show, set, reapply, restore)
+- Firewall policy management
+- SSH key management
+- User management and profile updates
+- Guest agent control
+- Rescue system management
+- Task management and monitoring
+- Server logs and metrics (CPU, disk, network)
+- User activity logs
+- Maintenance status checks
 - OpenAPI specification download and management
 - Rich console output formatting
-- Multiple output formats (json, yaml, table, list)
-- Comprehensive error handling
+- Multiple output formats (json, table, list)
+- Multipart upload support for custom images and ISOs
+- Comprehensive error handling and validation
 - Strict linting configuration with pylint
 - GitHub Actions workflow for PyPI publishing
 
 ### Documentation
 
 - README with installation and usage instructions
-- API endpoint documentation
 - Command reference
-- Configuration guide
+- Output format examples
+- Issue templates
 
 [0.1.0]: https://github.com/DS09AT/netcupctl/releases/tag/v0.1.0
