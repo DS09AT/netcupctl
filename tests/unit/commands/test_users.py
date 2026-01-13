@@ -192,6 +192,29 @@ class TestUsersCommands:
         call_args = ctx.client.put.call_args
         assert call_args[1]["json"]["secureMode"] is True
 
+    def test_update_user_with_secure_mode_app_toggle(self, cli_runner):
+        """Test update user with secure mode app toggle"""
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": "user_123",
+            "language": "en",
+            "timeZone": "UTC",
+            "secureModeAppAccess": False
+        }
+        ctx.client.get.return_value = current_user_data
+        ctx.client.put.return_value = USER_UPDATE_RESPONSE
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--enable-secure-mode-app"],
+                ctx
+            )
+
+        assert result.exit_code == 0
+        call_args = ctx.client.put.call_args
+        assert call_args[1]["json"]["secureModeAppAccess"] is True
+
     @patch("click.prompt")
     def test_update_user_with_password(self, mock_prompt, cli_runner):
         """Test update user with password change"""
@@ -340,4 +363,219 @@ class TestUsersCommands:
             )
 
         assert result.exit_code == status_code
+        assert "Error:" in result.output
+
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_update_user_interactive_success(self, mock_prompt, mock_confirm, cli_runner):
+        """Test interactive mode successful update"""
+        # Mock all prompts
+        mock_prompt.side_effect = [
+            "en",  # language
+            "Europe/Berlin",  # timezone
+            "",  # api-ip-restrictions (empty)
+        ]
+        mock_confirm.side_effect = [
+            True,  # show nickname
+            False,  # passwordless mode
+            False,  # secure mode
+            False,  # secure mode app
+            False,  # change password
+        ]
+
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": 123,
+            "language": "de",
+            "timeZone": "UTC",
+            "showNickname": False,
+            "passwordlessMode": False,
+            "secureMode": False,
+            "secureModeAppAccess": False
+        }
+        ctx.client.get.return_value = current_user_data
+        ctx.client.put.return_value = USER_UPDATE_RESPONSE
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive"],
+                ctx
+            )
+
+        assert result.exit_code == 0
+        assert "[OK]" in result.output
+        call_args = ctx.client.put.call_args
+        assert call_args[1]["json"]["id"] == 123
+        assert call_args[1]["json"]["language"] == "en"
+        assert call_args[1]["json"]["timeZone"] == "Europe/Berlin"
+        assert call_args[1]["json"]["showNickname"] is True
+
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_update_user_interactive_with_password(self, mock_prompt, mock_confirm, cli_runner):
+        """Test interactive mode with password change"""
+        # Mock all prompts
+        mock_prompt.side_effect = [
+            "de",  # language
+            "UTC",  # timezone
+            "",  # api-ip-restrictions
+            "oldpass",  # old password
+            "newpass",  # new password
+            "newpass",  # confirm password
+        ]
+        mock_confirm.side_effect = [
+            False,  # show nickname
+            False,  # passwordless mode
+            False,  # secure mode
+            False,  # secure mode app
+            True,  # change password
+        ]
+
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": 123,
+            "language": "de",
+            "timeZone": "UTC",
+            "showNickname": False
+        }
+        ctx.client.get.return_value = current_user_data
+        ctx.client.put.return_value = USER_UPDATE_RESPONSE
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive"],
+                ctx
+            )
+
+        assert result.exit_code == 0
+        call_args = ctx.client.put.call_args
+        assert call_args[1]["json"]["oldPassword"] == "oldpass"
+        assert call_args[1]["json"]["password"] == "newpass"
+
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_update_user_interactive_password_mismatch(self, mock_prompt, mock_confirm, cli_runner):
+        """Test interactive mode with password mismatch"""
+        mock_prompt.side_effect = [
+            "de",  # language
+            "UTC",  # timezone
+            "",  # api-ip-restrictions
+            "oldpass",  # old password
+            "newpass",  # new password
+            "wrongpass",  # confirm password (mismatch)
+        ]
+        mock_confirm.side_effect = [
+            False,  # show nickname
+            False,  # passwordless mode
+            False,  # secure mode
+            False,  # secure mode app
+            True,  # change password
+        ]
+
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": 123,
+            "language": "de",
+            "timeZone": "UTC"
+        }
+        ctx.client.get.return_value = current_user_data
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive"],
+                ctx
+            )
+
+        assert result.exit_code == 1
+        assert "Passwords do not match" in result.output
+        ctx.client.put.assert_not_called()
+
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_update_user_interactive_with_api_restrictions(self, mock_prompt, mock_confirm, cli_runner):
+        """Test interactive mode with API IP restrictions"""
+        mock_prompt.side_effect = [
+            "en",  # language
+            "UTC",  # timezone
+            "192.168.1.0/24",  # api-ip-restrictions
+        ]
+        mock_confirm.side_effect = [
+            False,  # show nickname
+            False,  # passwordless mode
+            False,  # secure mode
+            False,  # secure mode app
+            False,  # change password
+        ]
+
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": 123,
+            "language": "en",
+            "timeZone": "UTC"
+        }
+        ctx.client.get.return_value = current_user_data
+        ctx.client.put.return_value = USER_UPDATE_RESPONSE
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive"],
+                ctx
+            )
+
+        assert result.exit_code == 0
+        call_args = ctx.client.put.call_args
+        assert call_args[1]["json"]["apiIpLoginRestrictions"] == "192.168.1.0/24"
+
+    def test_update_user_interactive_mutually_exclusive(self, cli_runner):
+        """Test --interactive is mutually exclusive with other options"""
+        ctx = create_mock_context()
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive", "--language", "de"],
+                ctx
+            )
+
+        assert result.exit_code == 2
+        assert "Cannot use --interactive with other options" in result.output
+
+    @patch("click.confirm")
+    @patch("click.prompt")
+    def test_update_user_interactive_api_error(self, mock_prompt, mock_confirm, cli_runner):
+        """Test interactive mode handles API errors"""
+        mock_prompt.side_effect = [
+            "en",  # language
+            "UTC",  # timezone
+            "",  # api-ip-restrictions
+        ]
+        mock_confirm.side_effect = [
+            False,  # show nickname
+            False,  # passwordless mode
+            False,  # secure mode
+            False,  # secure mode app
+            False,  # change password
+        ]
+
+        ctx = create_mock_context()
+        current_user_data = {
+            "id": 123,
+            "language": "de",
+            "timeZone": "UTC"
+        }
+        ctx.client.get.return_value = current_user_data
+        ctx.client.put.side_effect = APIError("Server error", status_code=500)
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["users", "update", "--interactive"],
+                ctx
+            )
+
+        assert result.exit_code == 500
         assert "Error:" in result.output
