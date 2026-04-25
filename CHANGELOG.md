@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0](https://github.com/DS09AT/netcupctl/compare/v0.5.0...v0.6.0) (2026-04-25)
+
+
+### Features
+
+* Add firewall configure/cleanup and policy upsert ([f7f12e7](https://github.com/DS09AT/netcupctl/commit/f7f12e728ec7de4fec586c3813bfd33f50b4d5df))
+
 ## [0.5.0](https://github.com/DS09AT/netcupctl/compare/v0.4.0...v0.5.0) (2026-01-13)
 
 
