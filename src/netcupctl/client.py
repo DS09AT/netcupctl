@@ -49,6 +49,7 @@ class NetcupClient:
         path: str,
         params: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
+        accept: str = "application/json",
     ) -> Dict[str, Any]:
         """Make HTTP request to API.
 
@@ -57,6 +58,7 @@ class NetcupClient:
             path: API path (e.g., /api/v1/servers)
             params: Query parameters
             json: JSON request body
+            accept: Accept header value (default: application/json)
 
         Returns:
             Response data as dictionary
@@ -65,7 +67,7 @@ class NetcupClient:
             APIError: If request fails
             AuthError: If authentication fails
         """
-        headers = self._build_headers(method, json is not None)
+        headers = self._build_headers(method, json is not None, accept=accept)
         url = f"{self.BASE_URL}{path}"
 
         if self.verbose:
@@ -102,12 +104,13 @@ class NetcupClient:
         except requests.RequestException as exc:
             raise APIError(f"Request failed: {type(exc).__name__}") from exc
 
-    def _build_headers(self, method: str, has_json: bool) -> Dict[str, str]:
+    def _build_headers(self, method: str, has_json: bool, accept: str = "application/json") -> Dict[str, str]:
         """Build request headers with authentication.
 
         Args:
             method: HTTP method
             has_json: Whether request has JSON body
+            accept: Accept header value
 
         Returns:
             Headers dictionary
@@ -119,7 +122,7 @@ class NetcupClient:
 
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "Accept": "application/json",
+            "Accept": accept,
         }
 
         if has_json:
@@ -237,17 +240,23 @@ class NetcupClient:
 
         return error_data.get("message", "Validation error")
 
-    def get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get(
+        self,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        accept: str = "application/json",
+    ) -> Dict[str, Any]:
         """Make GET request.
 
         Args:
             path: API path
             params: Query parameters
+            accept: Accept header value (default: application/json)
 
         Returns:
             Response data
         """
-        return self.request("GET", path, params=params)
+        return self.request("GET", path, params=params, accept=accept)
 
     def post(self, path: str, json: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Make POST request.

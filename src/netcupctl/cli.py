@@ -1,6 +1,15 @@
 """Main CLI module for netcupctl."""
 
+import ssl
 import sys
+import warnings
+from datetime import datetime
+
+# urllib3 v2 emits a misleading warning on LibreSSL (macOS system Python) even though
+# standard HTTPS works. The filter must come before any import that loads urllib3.
+if "LibreSSL" in ssl.OPENSSL_VERSION:
+    warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL")
+
 from typing import Optional
 
 import click
@@ -125,6 +134,47 @@ def logout(ctx):
         sys.exit(1)
 
 
+@auth.command("ensure")
+@click.option(
+    "--min-ttl",
+    type=int,
+    default=300,
+    help="Minimum required token lifetime in seconds (default: 300).",
+)
+@pass_context
+def auth_ensure(ctx, min_ttl: int):
+    """Ensure the session token is valid and will remain so for at least MIN_TTL seconds.
+
+    This command is safe to call at the top of any shell script to pre-validate
+    and, if necessary, silently refresh the token before a long-running operation.
+    It does not trigger a browser-based login flow; if the session has expired
+    entirely the command exits with an error and asks the user to run 'auth login'.
+
+    The command prints the remaining token lifetime to stdout and exits 0 on
+    success, or exits 1 if the session is missing or cannot be refreshed.
+
+    \b
+    Examples:
+      netcupctl auth ensure
+      netcupctl auth ensure --min-ttl 600
+    """
+    if not ctx.auth.is_authenticated():
+        click.echo("Error: Not authenticated. Run 'netcupctl auth login' first.", err=True)
+        sys.exit(1)
+
+    info = ctx.auth.get_token_info()
+    expires_at = datetime.fromisoformat(info["expires_at"])
+    ttl = int((expires_at - datetime.now()).total_seconds())
+
+    if ttl < min_ttl:
+        ctx.auth.get_access_token()
+        info = ctx.auth.get_token_info()
+        expires_at = datetime.fromisoformat(info["expires_at"])
+        ttl = int((expires_at - datetime.now()).total_seconds())
+
+    click.echo(f"[OK] Token valid for {ttl}s.")
+
+
 @auth.command()
 @pass_context
 def status(ctx):
@@ -155,8 +205,8 @@ def ping(ctx):
     Performs a simple health check against the API.
     """
     try:
-        result = ctx.client.get("/api/ping")
-        # API returns plain text "OK", client wraps it in {"data": "OK"}
+        # The ping endpoint returns plain text only, so the default JSON Accept header causes a 400 error.
+        result = ctx.client.get("/api/ping", accept="text/plain, */*")
         if isinstance(result, dict) and "data" in result:
             click.echo(result["data"])
         else:

@@ -457,3 +457,100 @@ class TestFirewallPoliciesCommands:
 
         assert result.exit_code == status_code
         assert "Error:" in result.output
+
+
+    def test_upsert_creates_and_prints_id_to_stdout(self, cli_runner):
+        """Upsert prints only the policy ID to stdout when creating."""
+        from tests.fixtures.api_responses import (
+            FIREWALL_POLICY_LIST_EMPTY_RESPONSE,
+            FIREWALL_POLICY_CREATE_RESPONSE,
+        )
+        ctx = create_mock_context()
+        ctx.client.get.return_value = FIREWALL_POLICY_LIST_EMPTY_RESPONSE
+        ctx.client.post.return_value = FIREWALL_POLICY_CREATE_RESPONSE
+
+        with patch("netcupctl.commands.firewall_policies.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["firewall-policies", "upsert", "--name", "new-policy"],
+                ctx,
+            )
+
+        assert result.exit_code == 0
+        # The ID is the first line of stdout; [OK] message goes to stderr (mixed in result.output).
+        assert result.output.splitlines()[0].strip() == "99"
+        assert "[OK]" in result.output
+
+    def test_upsert_updates_and_returns_same_id(self, cli_runner):
+        """Upsert returns the existing ID when updating a policy by name."""
+        from tests.fixtures.api_responses import (
+            FIREWALL_POLICY_LIST_ONE_RESPONSE,
+            FIREWALL_POLICY_UPDATE_RESPONSE,
+        )
+        ctx = create_mock_context()
+        ctx.client.get.return_value = FIREWALL_POLICY_LIST_ONE_RESPONSE
+        ctx.client.put.return_value = FIREWALL_POLICY_UPDATE_RESPONSE
+
+        with patch("netcupctl.commands.firewall_policies.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["firewall-policies", "upsert", "--name", "my-policy"],
+                ctx,
+            )
+
+        assert result.exit_code == 0
+        assert result.output.splitlines()[0].strip() == "42"
+        assert "[OK]" in result.output
+
+    def test_upsert_with_rules_string(self, cli_runner):
+        """Upsert passes rules parsed from --rules to the policy body."""
+        from tests.fixtures.api_responses import (
+            FIREWALL_POLICY_LIST_EMPTY_RESPONSE,
+            FIREWALL_POLICY_CREATE_RESPONSE,
+        )
+        ctx = create_mock_context()
+        ctx.client.get.return_value = FIREWALL_POLICY_LIST_EMPTY_RESPONSE
+        ctx.client.post.return_value = FIREWALL_POLICY_CREATE_RESPONSE
+
+        rules = '{"rules":[{"direction":"INGRESS","protocol":"TCP","action":"ACCEPT","sources":[],"destinationPorts":"22"}]}'
+        with patch("netcupctl.commands.firewall_policies.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["firewall-policies", "upsert", "--name", "ssh", "--rules", rules],
+                ctx,
+            )
+
+        assert result.exit_code == 0
+        call_args = ctx.client.post.call_args
+        assert "rules" in call_args[1]["json"]
+
+    def test_upsert_invalid_json(self, cli_runner):
+        """Upsert exits with code 1 on invalid JSON in --rules."""
+        ctx = create_mock_context()
+        ctx.client.get.return_value = []
+
+        with patch("netcupctl.commands.firewall_policies.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["firewall-policies", "upsert", "--name", "bad", "--rules", "not-json"],
+                ctx,
+            )
+
+        assert result.exit_code == 1
+        assert "Invalid JSON" in result.output
+
+    @pytest.mark.parametrize("status_code", [401, 422, 500])
+    def test_upsert_api_errors(self, cli_runner, status_code):
+        """Upsert exits with the HTTP status code on API errors."""
+        ctx = create_mock_context()
+        ctx.client.get.side_effect = APIError("Error", status_code=status_code)
+
+        with patch("netcupctl.commands.firewall_policies.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(
+                cli_runner,
+                ["firewall-policies", "upsert", "--name", "test"],
+                ctx,
+            )
+
+        assert result.exit_code == status_code
+        assert "Error:" in result.output

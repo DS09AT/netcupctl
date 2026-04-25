@@ -34,6 +34,24 @@ def get_user(ctx):
         sys.exit(e.status_code or 1)
 
 
+@users.command("me")
+@click.pass_obj
+def me(ctx):
+    """Print the numeric user ID of the currently authenticated account to stdout.
+
+    This command is designed for use in shell scripts where the user ID is
+    needed as input to other commands. It writes only the ID to stdout, making
+    it safe to capture with command substitution.
+
+    \b
+    Example:
+      USER_ID=$(netcupctl users me)
+      netcupctl firewall-policies list  # implicitly uses the same user ID
+    """
+    user_id = get_authenticated_user_id(ctx)
+    click.echo(user_id)
+
+
 @users.command("update")
 @click.option("--language", type=click.Choice(["en", "de"]), help="Interface language (en or de)")
 @click.option("--timezone", help="IANA timezone (e.g., Europe/Berlin, America/New_York)")

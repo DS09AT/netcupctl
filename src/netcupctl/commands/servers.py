@@ -189,3 +189,29 @@ def status(ctx, server_id: str):
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
+
+
+@servers.command("gpu-driver")
+@click.argument("server_id")
+@click.pass_obj
+def gpu_driver(ctx, server_id: str):
+    """Get a presigned download URL for the GPU driver of a server.
+
+    Returns a time-limited download URL for the GPU driver package. The server
+    must have a vGPU attached; the command fails with HTTP 400 otherwise.
+
+    \b
+    Arguments:
+        SERVER_ID: Numeric server ID.
+
+    \b
+    Example:
+      netcupctl server gpu-driver 12345
+    """
+    try:
+        server_id = validate_server_id(server_id)
+        result = ctx.client.get(f"/api/v1/servers/{server_id}/gpu-driver")
+        ctx.formatter.output(result)
+    except APIError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(e.status_code or 1)

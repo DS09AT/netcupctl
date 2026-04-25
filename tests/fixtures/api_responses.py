@@ -513,3 +513,68 @@ ISO_MOUNT_RESPONSE = {
     "status": "mounted",
     "mounted_at": "2024-01-15T10:00:00Z",
 }
+
+# API-conformant firewall GET responses (ServerFirewall schema).
+FIREWALL_GET_RESPONSE = {
+    "copiedPolicies": [],
+    "userPolicies": [{"id": 42, "name": "ssh-policy", "rules": []}],
+    "ingressImplicitRule": "ACCEPT_ALL",
+    "egressImplicitRule": "ACCEPT_ALL",
+    "consistent": True,
+    "active": True,
+}
+
+FIREWALL_GET_WITH_DROP_ALL = {
+    "copiedPolicies": [],
+    "userPolicies": [],
+    "ingressImplicitRule": "DROP_ALL",
+    "egressImplicitRule": "DROP_ALL",
+    "consistent": True,
+    "active": True,
+}
+
+FIREWALL_GET_WITH_COPIED = {
+    "copiedPolicies": [{"id": 10, "name": "shared-policy", "rules": []}],
+    "userPolicies": [],
+    "ingressImplicitRule": "ACCEPT_ALL",
+    "egressImplicitRule": "ACCEPT_ALL",
+    "consistent": True,
+    "active": True,
+}
+
+FIREWALL_GET_EMPTY = {
+    "copiedPolicies": [],
+    "userPolicies": [],
+    "ingressImplicitRule": "ACCEPT_ALL",
+    "egressImplicitRule": "ACCEPT_ALL",
+    "consistent": True,
+    "active": True,
+}
+
+# API-conformant firewall-policy list responses (integer IDs, unlike legacy string-ID fixtures).
+FIREWALL_POLICY_LIST_EMPTY_RESPONSE = []
+
+FIREWALL_POLICY_LIST_ONE_RESPONSE = [
+    {"id": 42, "name": "my-policy", "description": "", "rules": []},
+]
+
+FIREWALL_POLICY_LIST_MULTIPLE_SAME_NAME = [
+    {"id": 42, "name": "my-policy", "rules": []},
+    {"id": 43, "name": "my-policy", "rules": []},
+]
+
+FIREWALL_POLICY_CREATE_RESPONSE = {
+    "id": 99,
+    "name": "new-policy",
+    "rules": [],
+}
+
+FIREWALL_POLICY_UPDATE_RESPONSE = {
+    "id": 42,
+    "name": "my-policy",
+    "rules": [],
+}
+
+SERVER_INTERFACE_LIST_RESPONSE = [
+    {"mac": "00:11:22:33:44:55", "name": "eth0"},
+]

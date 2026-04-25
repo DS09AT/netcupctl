@@ -579,3 +579,26 @@ class TestUsersCommands:
 
         assert result.exit_code == 500
         assert "Error:" in result.output
+
+
+    def test_me_prints_user_id(self, cli_runner):
+        """me prints the authenticated user's ID to stdout."""
+        ctx = create_mock_context()
+
+        with patch("netcupctl.commands.users.get_authenticated_user_id", return_value="user_123"):
+            result = invoke_with_mocks(cli_runner, ["users", "me"], ctx)
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "user_123"
+
+    def test_me_not_authenticated(self, cli_runner):
+        """me exits with code 1 when the user is not authenticated."""
+        ctx = create_mock_context(authenticated=False)
+
+        with patch(
+            "netcupctl.commands.users.get_authenticated_user_id",
+            side_effect=SystemExit(1),
+        ):
+            result = invoke_with_mocks(cli_runner, ["users", "me"], ctx)
+
+        assert result.exit_code == 1

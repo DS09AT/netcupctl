@@ -26,6 +26,17 @@ cd netcupctl
 pip install .
 ```
 
+### Update
+
+```bash
+# From PyPI
+pip install --upgrade netcupctl
+
+# Or from source
+git pull
+pip install .
+```
+
 ## Quick Start
 
 ### 1. Login
@@ -82,8 +93,8 @@ netcupctl servers start --help    # Show command details
 ### Overview
 
 **Authentication & Server Management**
-- `netcupctl auth login | logout | status` - OAuth2 authentication
-- `netcupctl servers list | get | status | start | stop | poweroff | reboot <server-id>` - Server control
+- `netcupctl auth login | logout | status | ensure` - OAuth2 authentication
+- `netcupctl servers list | get | status | start | stop | poweroff | reboot | gpu-driver <server-id>` - Server control
 - `netcupctl ping` - API health check
 - `netcupctl maintenance` - Maintenance status
 
@@ -97,8 +108,8 @@ netcupctl servers start --help    # Show command details
 - `netcupctl vlans list | get | update <vlan-id>` - VLAN management
 - `netcupctl rdns get | set | delete <server-id> <ip>` - Reverse DNS
 - `netcupctl failover-ips list | get | update <id>` - Failover IP management
-- `netcupctl firewall show | set | reapply | restore <server-id>` - Firewall rules
-- `netcupctl firewall-policies list | get | create | update | delete [id]` - Firewall policies
+- `netcupctl firewall show | set | configure | reapply | restore | cleanup <server-id> <mac>` - Firewall rules
+- `netcupctl firewall-policies list | get | create | update | upsert | delete [id]` - Firewall policies
 
 **Monitoring & Logs**
 - `netcupctl logs <server-id>` - Server logs
@@ -116,7 +127,7 @@ netcupctl servers start --help    # Show command details
 - `netcupctl ssh-keys list | add | delete [key-id]` - SSH key management
 - `netcupctl rescue show | enable | disable <server-id>` - Rescue system
 - `netcupctl guest-agent show | enable | disable <server-id>` - Guest agent control
-- `netcupctl users get | update` - User profile management
+- `netcupctl users get | update | me` - User profile management
 
 **Utilities**
 - `netcupctl spec update | show` - OpenAPI specification management
