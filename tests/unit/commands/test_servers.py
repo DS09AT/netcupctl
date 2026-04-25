@@ -4,7 +4,7 @@ from click.testing import CliRunner
 
 from netcupctl.cli import cli
 from netcupctl.client import APIError
-from tests.fixtures.api_responses import SERVER_LIST_RESPONSE, SERVER_DETAIL_RESPONSE
+from tests.fixtures.api_responses import SERVER_LIST_RESPONSE, SERVER_DETAIL_RESPONSE, SERVER_STATUS_RESPONSE
 from tests.fixtures.cli_helpers import create_mock_context, invoke_with_mocks
 
 
@@ -59,6 +59,35 @@ class TestServersCommands:
         ctx.client.get.side_effect = APIError("Not found", status_code=404)
 
         result = invoke_with_mocks(cli_runner, ["servers", "get", "nonexistent"], ctx)
+
+        assert result.exit_code == 404
+
+    def test_status_server_success(self, cli_runner):
+        ctx = create_mock_context()
+        ctx.client.get.return_value = SERVER_STATUS_RESPONSE
+
+        result = invoke_with_mocks(cli_runner, ["servers", "status", "srv-12345"], ctx)
+
+        assert result.exit_code == 0
+        assert "RUNNING" in result.output
+
+    def test_status_server_json_format(self, cli_runner):
+        ctx = create_mock_context(output_format="json")
+        ctx.client.get.return_value = SERVER_STATUS_RESPONSE
+
+        result = invoke_with_mocks(cli_runner, ["--format", "json", "servers", "status", "srv-12345"], ctx)
+
+        assert result.exit_code == 0
+        import json
+        data = json.loads(result.output)
+        assert data["status"] == "RUNNING"
+        assert data["id"] == "srv-12345"
+
+    def test_status_server_api_error(self, cli_runner):
+        ctx = create_mock_context()
+        ctx.client.get.side_effect = APIError("Not found", status_code=404)
+
+        result = invoke_with_mocks(cli_runner, ["servers", "status", "srv-12345"], ctx)
 
         assert result.exit_code == 404
 

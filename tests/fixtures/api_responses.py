@@ -21,6 +21,15 @@ SERVER_LIST_RESPONSE = [
     },
 ]
 
+SERVER_STATUS_RESPONSE = {
+    "id": "srv-12345",
+    "name": "web-server-01",
+    "hostname": "web-server-01",
+    "serverLiveInfo": {
+        "state": "RUNNING",
+    },
+}
+
 SERVER_DETAIL_RESPONSE = {
     "id": "srv-12345",
     "name": "web-server-01",

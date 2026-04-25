@@ -181,11 +181,9 @@ def status(ctx, server_id: str):
         result = ctx.client.get(f"/api/v1/servers/{server_id}")
 
         state = result.get("serverLiveInfo", {}).get("state", "UNKNOWN")
-        hostname = result.get("hostname", "")
-        server_name = result.get("name", "")
+        name = result.get("hostname") or result.get("name", "")
 
-        click.echo(f"Server: {hostname or server_name} (ID: {server_id})")
-        click.echo(f"Status: {state}")
+        ctx.formatter.output({"id": server_id, "name": name, "status": state})
     except APIError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(e.status_code or 1)
